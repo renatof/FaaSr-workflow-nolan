@@ -44,7 +44,7 @@
   },
   "ActionContainers": {
     "start": "ghcr.io/faasr/github-actions-r:dev",
-    "sum": "ghcr.io/faasr/github-actions-py:dev"
+    "sum": "ghcr.io/faasr/github-actions-python:dev"
   },
   "FunctionInvoke": "start",
   "DefaultDataStore": "My_S3_Bucket",
