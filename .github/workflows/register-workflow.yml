@@ -48,7 +48,7 @@ jobs:
           OW_API_KEY: ${{ secrets.OW_API_KEY }}
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ secrets.My_GitHub_Account_PAT }}
         run: |
           # Run function registration 
           python scripts/register_workflow.py --workflow-file ${{ github.event.inputs.workflow_file }} 
