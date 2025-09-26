@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+f#!/usr/bin/env python3
 
 import argparse
 import json
@@ -393,8 +393,8 @@ jobs:
     env:
       TOKEN: ${{{{ secrets.My_GitHub_Account_PAT }}}}
       My_GitHub_Account_PAT: ${{{{ secrets.My_GitHub_Account_PAT }}}}
-      My_S3_Bucket_AccessKey: ${{{{ secrets.My_S3_Bucket_AccessKey }}}}
-      My_S3_Bucket_SecretKey: ${{{{ secrets.My_S3_Bucket_SecretKey }}}}
+      My_Minio_Bucket_AccessKey: ${{{{ secrets.My_Minio_Bucket_AccessKey }}}}
+      My_Minio_Bucket_SecretKey: ${{{{ secrets.My_Minio_Bucket_SecretKey }}}}
       OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
       PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
     steps:
