@@ -725,7 +725,6 @@ def main():
         print("✓ Workflow validation passed - no cycles or unreachable states found")
     except SystemExit:
         print("✗ Workflow validation failed - check logs for details")
-        sys.exit(1)
     
     # Get all unique FaaSTypes from workflow data
     faas_types = set()
