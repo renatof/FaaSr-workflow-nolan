@@ -51,7 +51,7 @@
         "create-input": "ghcr.io/faasr/github-actions-python:dev",
         "test-arrow": "ghcr.io/faasr/github-actions-r:dev"
     },
-    "FunctionInvoke": "create-inputs",
+    "FunctionInvoke": "create-input",
     "DefaultDataStore": "My_Minio_Bucket",
     "FunctionGitRepo": {
         "create_input": "JStover95/FaaSr-Testing-Functions/arrow_test_functions",
@@ -64,6 +64,7 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
 
 
