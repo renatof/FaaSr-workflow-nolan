@@ -35,7 +35,7 @@
             "FaaSType": "GitHubActions",
             "UserName": "nolcut",
             "UseSecretStore": true,
-            "ActionRepoName": "FaaSr-Testing-Workflow",
+            "ActionRepoName": "FaaSr-workflow",
             "Branch": "main"
         }
     },
@@ -64,6 +64,7 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
 
 
