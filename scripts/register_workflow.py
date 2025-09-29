@@ -15,7 +15,12 @@ from FaaSr_py import graph_functions as faasr_gf
 from github import Github
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s: %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -107,7 +112,7 @@ def generate_github_secret_imports(faasr_payload):
     import_statements = []
 
     for faas_name, compute_server in faasr_payload.get("ComputeServers", {}).items():
-        faas_type = compute_server.get("FaaSType", "").lower()
+        faas_type = compute_server.get("FaaSType", "")
         match (faas_type):
             case "GitHubActions":
                 pat_secret = f"{faas_name}_PAT"
@@ -166,7 +171,7 @@ def deploy_to_github(workflow_data):
     # Get the current repository
     repo_name = os.getenv("GITHUB_REPOSITORY")
     if not repo_name:
-        print("Error: GITHUB_REPOSITORY environment variable not set")
+        logger.error("Error: GITHUB_REPOSITORY environment variable not set")
         sys.exit(1)
 
     # Filter actions to be deployed to GitHub Actions
