@@ -149,12 +149,14 @@ def generate_github_secret_imports(faasr_payload):
         secret_key = f"{s3_name}_SecretKey"
         access_key = f"{s3_name}_AccessKey"
         import_statements.extend(
-            f"{access_key}: ${{{{ secrets.{access_key}}}}}",
-            f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+            [
+                f"{access_key}: ${{{{ secrets.{access_key}}}}}",
+                f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+            ]
         )
 
     # Indent each line for YAML formatting
-    indent = " " * 24
+    indent = " " * 28
     import_statements = "\n".join(f"{indent}{s}" for s in import_statements)
 
     return import_statements
@@ -219,34 +221,34 @@ def deploy_to_github(workflow_data):
             secret_imports = generate_github_secret_imports(workflow_data)
 
             workflow_content = textwrap.dedent(
-                f"""
+                f"""\
                 name: {prefixed_action_name}
 
                 on:
-                workflow_dispatch:
-                    inputs:
-                    OVERWRITTEN:
-                        description: "Overwritten fields"
-                        required: true
-                    PAYLOAD_URL:
-                        description: "URL to payload"
-                        required: true
+                    workflow_dispatch:
+                        inputs:
+                            OVERWRITTEN:
+                                description: "Overwritten fields"
+                                required: true
+                            PAYLOAD_URL:
+                                description: "URL to payload"
+                                required: true
 
                 jobs:
-                run_docker_image:
-                    runs-on: ubuntu-latest
-                    container: {container_image}
+                    run_docker_image:
+                        runs-on: ubuntu-latest
+                        container: {container_image}
 
-                    env:
+                        env:
 {secret_imports}
-                        OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
-                        PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
+                            OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
+                            PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
 
-                    steps:
-                    - name: Run Python entrypoint
-                        run: |
-                        cd /action
-                        python3 faasr_entry.py
+                        steps:
+                          - name: Run Python entrypoint
+                            run: |
+                                cd /action
+                                python3 faasr_entry.py
             """
             )
 
@@ -255,24 +257,16 @@ def deploy_to_github(workflow_data):
             try:
                 # Try to get the file first
                 contents = repo.get_contents(workflow_path)
-                existing_content = contents.decoded_content.decode("utf-8")
 
-                # Check if content has changed
-                if existing_content.strip() == workflow_content.strip():
-                    logger.info(
-                        f"{workflow_path} content is already up to date, skipping update"
-                    )
-                else:
-                    # If file exists and content is different, update it
-                    logger.info(f"File {workflow_path} exists, updating...")
-                    repo.update_file(
-                        path=workflow_path,
-                        message=f"Update workflow for {prefixed_action_name}",
-                        content=workflow_content,
-                        sha=contents.sha,
-                        branch=default_branch,
-                    )
-                    logger.info(f"Successfully updated {workflow_path}")
+                # Update YAML file
+                repo.update_file(
+                    path=workflow_path,
+                    message=f"Update workflow for {prefixed_action_name}",
+                    content=workflow_content,
+                    sha=contents.sha,
+                    branch=default_branch,
+                )
+                logger.info(f"Successfully updated {workflow_path}")
             except Exception as e:
                 if "Not Found" in str(e) or "404" in str(e):
                     # If file doesn't exist, create it
