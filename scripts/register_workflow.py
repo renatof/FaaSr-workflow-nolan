@@ -102,6 +102,11 @@ def generate_github_secret_imports(faasr_payload):
 def deploy_to_github(workflow_data):
     """Deploys GH functions to GitHub Actions"""
     github_token = os.getenv("GH_PAT")
+
+    if not github_token:
+        logger.error("GH_PAT environment variable not set")
+        sys.exit(1)
+
     g = Github(github_token)
 
     # Get the workflow name for prefixing

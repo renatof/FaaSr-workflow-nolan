@@ -46,6 +46,9 @@ def main():
 
     token = os.getenv("GH_PAT")
 
+    # debug
+    print(file_path)
+
     if not token:
         logger.warning("GH_PAT environment variable not set. Inovcation will fail if repository is private")
 
