@@ -25,7 +25,7 @@ def get_workflow_file():
     parser.add_argument(
         "--workflow-file", required=True, help="Path to the workflow JSON file"
     )
-    
+
     workflow_path = parser.parse_args().workflow_file
 
     # Verify provided workflow file is valid
@@ -42,7 +42,9 @@ def add_secrets_to_server(server, faas_type):
         case "GitHubActions":
             token = os.getenv("GH_PAT")
             if not token:
-                logger.error("GH_PAT environment variable must be set for GitHub Action invocation")
+                logger.error(
+                    "GH_PAT environment variable must be set for GitHub Action invocation"
+                )
                 sys.exit(1)
             server["Token"] = token
 
@@ -51,30 +53,38 @@ def add_secrets_to_server(server, faas_type):
             aws_secret_key = os.getenv("AWS_SecretKey")
 
             if not aws_access_key or not aws_secret_key:
-                logger.error("AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation")
+                logger.error(
+                    "AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation"
+                )
                 sys.exit(1)
-            
+
             server["AWS_AccessKey"] = aws_access_key
             server["AWS_SecretKey"] = aws_secret_key
-        
+
         case "OpenWhisk":
             ow_api_key = os.getenv("OW_APIkey")
             if not ow_api_key:
-                logger.error("OW_APIkey environment variable must be set for OpenWhisk invocation")
+                logger.error(
+                    "OW_APIkey environment variable must be set for OpenWhisk invocation"
+                )
                 sys.exit(1)
             server["OW_APIkey"] = ow_api_key
 
         case "GoogleCloud":
             gcp_secret_key = os.getenv("GCP_SecretKey")
             if not gcp_secret_key:
-                logger.error("GCP_SecretKey environment variable must be set for Google Cloud Functions invocation")
+                logger.error(
+                    "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation"
+                )
                 sys.exit(1)
             server["GCP_SecretKey"] = gcp_secret_key
-        
+
         case "SLURM":
             slurm_token = os.getenv("SLURM_Token")
             if not slurm_token:
-                logger.error("SLURM_Token environment variable must be set for SLURM invocation")
+                logger.error(
+                    "SLURM_Token environment variable must be set for SLURM invocation"
+                )
                 sys.exit(1)
             server["SLURM_Token"] = slurm_token
 
@@ -92,7 +102,9 @@ def main():
     token = os.getenv("GH_PAT")
 
     if not token:
-        logger.warning("GH_PAT environment variable not set. Inovcation will fail if repository is private")
+        logger.warning(
+            "GH_PAT environment variable not set. Inovcation will fail if repository is private"
+        )
 
     # Create payload object
     try:

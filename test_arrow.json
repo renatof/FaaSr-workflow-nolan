@@ -11,7 +11,7 @@
             "InvokeNext": [
                 "test-arrow"
             ],
-            "FaaSServer": "My_GitHub_Account",
+            "FaaSServer": "GH",
             "Type": "Python",
             "FunctionName": "create_input"
         },
@@ -25,13 +25,13 @@
                 "output2": "output2-R.txt"
             },
             "InvokeNext": [],
-            "FaaSServer": "My_GitHub_Account",
+            "FaaSServer": "GH",
             "Type": "R",
             "FunctionName": "test_arrow"
         }
     },
     "ComputeServers": {
-        "My_GitHub_Account": {
+        "GH": {
             "FaaSType": "GitHubActions",
             "UserName": "nolcut",
             "UseSecretStore": true,
@@ -58,12 +58,12 @@
         "test_arrow": "JStover95/FaaSr-Testing-Functions/arrow_test_functions"
     },
     "LoggingDataStore": "My_Minio_Bucket",
-    "InvocationTimestamp": "123",
     "FaaSrLog": "FaaSrLog",
     "InvocationID": "",
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
 
 
