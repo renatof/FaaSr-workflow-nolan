@@ -42,7 +42,9 @@ def main():
 
     github_repo = os.getenv("GITHUB_REPOSITORY")
 
-    file_path = f"{github_repo}/{workflow_path}"
+    ref = os.getenv("GITHUB_REF_NAME", "main")
+
+    file_path = f"{github_repo}/{ref}/{workflow_path}"
 
     token = os.getenv("GH_PAT")
 

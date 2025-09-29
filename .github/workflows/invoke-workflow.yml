@@ -7,7 +7,6 @@ on:
         description: 'Workflow JSON file name'
         required: true
         type: string
-        default: 'project1.json'
 
 jobs:
   trigger:
