@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       custom_container:
-        description: 'Custom container'
+        description: 'Custom containers'
         type: boolean
 jobs:
   deploy:
