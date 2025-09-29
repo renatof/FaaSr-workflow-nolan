@@ -6,13 +6,13 @@ import logging
 import os
 import subprocess
 import sys
-import time
 import textwrap
+import time
 
 import boto3
 import requests
+from FaaSr_py import graph_functions as faasr_gf
 from github import Github
-from FaaSr_py import check_dag
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -136,7 +136,7 @@ def generate_github_secret_imports(faasr_payload):
                 logger.error(
                     f"Unknown FaaSType ({faas_type}) for compute server: {faas_name} - cannot generate secrets"
                 )
-                os.exit(1)
+                sys.exit(1)
 
     for s3_name in faasr_payload.get("DataStores", {}).keys():
         import_statements += f"{s3_name}_AccessKey\n" f"{s3_name}_SecretKey\n"
@@ -201,7 +201,7 @@ def deploy_to_github(workflow_data):
             # Ensure container image is specified
             if not container_image:
                 logger.error(f"No container specified for action: {action_name}")
-                os.exit(1)
+                sys.exit(1)
 
             # Dynamically set required secrets and variables
             secret_imports = generate_github_secret_imports(workflow_data)
@@ -326,7 +326,7 @@ def deploy_to_aws(workflow_data):
             container_image = workflow_data.get("ActionContainers", {}).get(action_name)
             if not container_image:
                 logger.error(f"No container specified for action: {action_name}")
-                os.exit(1)
+                sys.exit(1)
 
             # Check payload size before deployment
             payload_size = len(workflow_data.encode("utf-8"))
@@ -451,9 +451,7 @@ def deploy_to_aws(workflow_data):
             print(f"Error deploying {prefixed_func_name} to AWS: {str(e)}")
             # Print additional debugging information
             if "RequestEntityTooLargeException" in str(e):
-                print(
-                    f"Payload too large - size: {len(workflow_data)} bytes"
-                )
+                print(f"Payload too large - size: {len(workflow_data)} bytes")
                 print("Consider reducing workflow complexity or using external storage")
             elif "InvalidParameterValueException" in str(e):
                 print("Check Lambda configuration parameters (memory, timeout, role)")
@@ -571,7 +569,7 @@ def main():
     # Validate workflow for cycles and unreachable states
     print("Validating workflow for cycles and unreachable states...")
     try:
-        check_dag(workflow_data)
+        faasr_gf.check_dag(workflow_data)
         print("Workflow validation passed")
     except SystemExit:
         print("Workflow validation failed - check logs for details")
