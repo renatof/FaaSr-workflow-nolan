@@ -111,6 +111,7 @@ def generate_github_secret_imports(faasr_payload):
     """Generate GitHub Actions secret import commands from FaaSr payload."""
     import_statements = []
 
+    # Add secrets for compute servers
     for faas_name, compute_server in faasr_payload.get("ComputeServers", {}).items():
         faas_type = compute_server.get("FaaSType", "")
         match (faas_type):
@@ -143,8 +144,14 @@ def generate_github_secret_imports(faasr_payload):
                 )
                 sys.exit(1)
 
+    # Add secrets for data stores
     for s3_name in faasr_payload.get("DataStores", {}).keys():
-        import_statements += f"{s3_name}_AccessKey\n" f"{s3_name}_SecretKey\n"
+        secret_key = f"{s3_name}_SecretKey"
+        access_key = f"{s3_name}_AccessKey"
+        import_statements.extend(
+            f"{access_key}: ${{{{ secrets.{access_key}}}}}",
+            f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+        )
 
     # Indent each line for YAML formatting
     indent = " " * 24
