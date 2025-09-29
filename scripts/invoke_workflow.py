@@ -56,20 +56,22 @@ def main():
 
     # Create payload object
     try:
+        # debug
+        print(file_path, token)
         workflow = FaaSrPayload(url=file_path, token=token)
     except Exception as e:
-        logger.error(f"Error initializing FaaSr payload: {e}")
+        logger.error(f"Exception raised while while initializing FaaSr payload: {e}")
         sys.exit(1)
 
     workflow_name = FaaSrPayload.get("WorkflowName")
     if not workflow_name:
-        logger.error("Error: WorkflowName not found in payload")
+        logger.error("WorkflowName not found in payload")
         sys.exit(1)
 
     entry_func = FaaSrPayload.get("FunctionInvoke")
 
     if not entry_func:
-        logger.error("Error: FunctionInvoke not found in payload")
+        logger.error("FunctionInvoke not found in payload")
         sys.exit(1)
 
     faasr_scheduler = Scheduler(workflow)
