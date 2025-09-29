@@ -10,11 +10,9 @@ import textwrap
 import time
 
 import boto3
-import requests
 from FaaSr_py import graph_functions as faasr_gf
 from github import Github
 
-# Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s: %(message)s",
@@ -46,67 +44,6 @@ def read_workflow_file(file_path):
         sys.exit(1)
 
 
-def get_github_token():
-    # Get GitHub PAT from environment variable
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("Error: GITHUB_TOKEN environment variable not set")
-        sys.exit(1)
-    return token
-
-
-def get_aws_credentials():
-    # Try to get AWS credentials from environment variables
-    aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    aws_region = "us-east-1"
-    role_arn = os.getenv("AWS_LAMBDA_ROLE_ARN")
-
-    if not all([aws_access_key, aws_secret_key, role_arn]):
-        print("Error: AWS credentials or role ARN not set in environment variables")
-        sys.exit(1)
-
-    return aws_access_key, aws_secret_key, aws_region, role_arn
-
-
-def set_github_variable(repo_full_name, var_name, var_value, github_token):
-    """Set a GitHub repository variable using the REST API"""
-    url = f"https://api.github.com/repos/{repo_full_name}/actions/variables/{var_name}"
-    headers = {
-        "Authorization": f"Bearer {github_token}",
-        "Accept": "application/vnd.github+json",
-    }
-    data = {"name": var_name, "value": var_value}
-    # Try to update, if not found, create
-    r = requests.patch(url, headers=headers, json=data)
-    if r.status_code == 404:
-        r = requests.post(
-            f"https://api.github.com/repos/{repo_full_name}/actions/variables",
-            headers=headers,
-            json=data,
-        )
-    if not r.ok:
-        print(f"Failed to set variable {var_name}: {r.text}")
-    else:
-        print(f"Set variable {var_name} for {repo_full_name}")
-
-
-def set_missing_secrets_and_vars(repo, required_secrets, required_vars, github_token):
-    """Set GitHub secrets and variables for the repository if they are not already present"""
-    # Check and set secrets
-    existing_secrets = {s.name for s in repo.get_secrets()}
-    for secret_name, secret_value in required_secrets.items():
-        if secret_name not in existing_secrets:
-            print(f"Setting secret: {secret_name}")
-        else:
-            print(f"Secret {secret_name} already exists, updating it.")
-        repo.create_secret(secret_name, secret_value)
-
-    # Set variables using REST API
-    for var_name, var_value in required_vars.items():
-        set_github_variable(repo.full_name, var_name, var_value, github_token)
-
-
 def generate_github_secret_imports(faasr_payload):
     """Generate GitHub Actions secret import commands from FaaSr payload."""
     import_statements = []
@@ -128,7 +65,7 @@ def generate_github_secret_imports(faasr_payload):
                     f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
                 )
             case "OpenWhisk":
-                api_key = f"{faas_name}_APIKey"
+                api_key = f"{faas_name}_APIkey"
                 import_statements.append(f"{api_key}: ${{{{ secrets.{api_key}}}}}")
             case "GoogleCloud":
                 secret_key = f"{faas_name}_SecretKey"
@@ -164,7 +101,7 @@ def generate_github_secret_imports(faasr_payload):
 
 def deploy_to_github(workflow_data):
     """Deploys GH functions to GitHub Actions"""
-    github_token = get_github_token()
+    github_token = os.getenv("GH_PAT")
     g = Github(github_token)
 
     # Get the workflow name for prefixing
@@ -179,9 +116,6 @@ def deploy_to_github(workflow_data):
 
     # Get the current repository
     repo_name = os.getenv("GITHUB_REPOSITORY")
-    if not repo_name:
-        logger.error("Error: GITHUB_REPOSITORY environment variable not set")
-        sys.exit(1)
 
     # Filter actions to be deployed to GitHub Actions
     github_actions = {}
@@ -503,7 +437,7 @@ def deploy_to_ow(workflow_data):
     subprocess.run(f"wsk property set --apihost {api_host}", shell=True)
 
     # Set authentication using API key from environment variable
-    ow_api_key = os.getenv("OW_API_KEY")
+    ow_api_key = os.getenv("OW_APIkey")
     if ow_api_key:
         subprocess.run(f"wsk property set --auth {ow_api_key}", shell=True)
         print("Using OpenWhisk with API key authentication")
