@@ -7,7 +7,10 @@
             "Endpoint": "https://run.googleapis.com/v2/projects/",
             "UseSecretStore": true,
             "ClientEmail": "faasr-workflow-runner@faasr-dev.iam.gserviceaccount.com",
-            "TokenUri": "https://oauth2.googleapis.com/token"
+            "TokenUri": "https://oauth2.googleapis.com/token",
+            "CPUsPerTask": 1,
+            "Memory": 512,
+            "TimeLimit": 3600
         },
         "GH": {
         "FaaSType": "GitHubActions",
@@ -37,6 +40,11 @@
             "FunctionName": "r_log",
             "FaaSServer": "GCP",
             "Type": "R",
+             "Resources": {
+                "CPUsPerTask": 2,
+                "Memory": 1024,
+                "TimeLimit": 1800
+            },
             "Arguments": {
                 "message": "testing testing testing"
             },
