@@ -506,32 +506,23 @@ def deploy_to_ow(workflow_data):
 
 def create_gcp_job_definition(job_name, container_image, region):
     """
-    Creates a Cloud Run Job definition following GCP's API schema.
-    
-    Environment variables for GCP:
-    - PAYLOAD_URL: URL to base workflow JSON
-    - OVERWRITTEN: JSON string with overridden fields (may contain secrets)
-    - TOKEN: GitHub PAT for fetching user functions (if available)
-
+    Creates a Cloud Run Job definition following GCP's API v2 schema.
     """
     return {
-        "name": job_name,
         "template": {
             "template": {
                 "containers": [
                     {
                         "image": container_image,
-                        "env": [],
                         "resources": {
                             "limits": {
-                                "cpu": "1000m",
+                                "cpu": "1",
                                 "memory": "512Mi"
                             }
                         }
                     }
                 ],
-                "maxRetries": 0,
-                "timeoutSeconds": 3600
+                "timeout": "3600s"
             }
         }
     }
