@@ -40,8 +40,8 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ramrakha/gcp-r:1.4",
-        "rfunc2": "ramrakha/gcp-r:1.4"
+        "rfunc": "ramrakha/gcp-r:1.5",
+        "rfunc2": "ramrakha/gcp-r:1.5"
     },
     "FunctionCRANPackage": {
         "r_log": [
