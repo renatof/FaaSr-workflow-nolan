@@ -11,7 +11,7 @@
             "InvokeNext": [
                 "test-arrow"
             ],
-            "FaaSServer": "GH",
+            "FaaSServer": "AWS",
             "Type": "Python",
             "FunctionName": "create_input"
         },
@@ -25,7 +25,7 @@
                 "output2": "output2-R.txt"
             },
             "InvokeNext": [],
-            "FaaSServer": "GH",
+            "FaaSServer": "AWS",
             "Type": "R",
             "FunctionName": "test_arrow"
         }
@@ -37,6 +37,10 @@
             "UseSecretStore": true,
             "ActionRepoName": "FaaSr-workflow",
             "Branch": "main"
+        },
+        "AWS": {
+            "FaaSType": "Lambda",
+            "Region": "us-east-1"
         }
     },
     "DataStores": {
@@ -63,6 +67,7 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
 
 
