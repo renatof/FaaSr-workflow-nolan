@@ -12,6 +12,19 @@
             "Memory": 512,
             "TimeLimit": 3600
         },
+            "My_SLURM_Server": {
+          "FaaSType": "SLURM",
+          "Endpoint": "http://slurm.faasr.io:6820",
+          "APIVersion": "v0.0.37",
+          "Partition": "faasr",
+          "Nodes": 1,
+          "Tasks": 1,
+          "CPUsPerTask": 2,
+          "UserName" : "ubuntu",
+          "Memory": 2048,
+          "TimeLimit": 30,
+          "WorkingDirectory": "/tmp"
+        },
         "GH": {
         "FaaSType": "GitHubActions",
         "UseSecretStore": true,
@@ -29,7 +42,7 @@
     "ActionList": {
         "rfunc": {
             "FunctionName": "r_log",
-            "FaaSServer": "GCP",
+            "FaaSServer": "My_SLURM_Server",
             "Type": "R",
             "Arguments": {
                 "message": "testing testing testing"
@@ -38,7 +51,7 @@
         },
          "rfunc2": {
             "FunctionName": "r_log",
-            "FaaSServer": "GCP",
+            "FaaSServer": "My_SLURM_Server",
             "Type": "R",
              "Resources": {
                 "CPUsPerTask": 2,
@@ -52,8 +65,8 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ramrakha/gcp-r:dev",
-        "rfunc2": "ramrakha/gcp-r:dev"
+        "rfunc": "ramrakha/slurm-r:dev",
+        "rfunc2": "ramrakha/slurm-r:dev"
     },
     "FunctionCRANPackage": {
         "r_log": [
