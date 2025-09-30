@@ -8,7 +8,13 @@
             "UseSecretStore": true,
             "ClientEmail": "faasr-workflow-runner@faasr-dev.iam.gserviceaccount.com",
             "TokenUri": "https://oauth2.googleapis.com/token"
-        }
+        },
+        "GH": {
+        "FaaSType": "GitHubActions",
+        "UseSecretStore": true,
+        "UserName": "Ashish-Ramrakhiani",
+        "ActionRepoName": "FaaSr-workflow-main"
+    }
     },
     "DataStores": {
         "My_S3_Bucket": {
