@@ -706,6 +706,235 @@ def deploy_to_gcp(workflow_data):
     
     logger.info(f"Successfully registered {len(gcp_actions)} GCP Cloud Run Jobs")
 
+def deploy_to_slurm(workflow_data):
+    """
+    Validate SLURM configuration and test connectivity.
+    This function validates configuration and tests connectivity.
+    
+    Args:
+        workflow_data: Full workflow JSON
+    """
+    logger.info("Validating SLURM configuration...")
+    
+    # Find all SLURM actions
+    slurm_actions = {}
+    slurm_servers = {}
+    
+    for action_name, action_data in workflow_data["ActionList"].items():
+        server_name = action_data["FaaSServer"]
+        server_config = workflow_data["ComputeServers"][server_name]
+        faas_type = server_config.get("FaaSType", "")
+        
+        if faas_type == "SLURM":
+            if server_name not in slurm_actions:
+                slurm_actions[server_name] = []
+                slurm_servers[server_name] = server_config.copy()
+            slurm_actions[server_name].append(action_name)
+    
+    if not slurm_actions:
+        logger.info("No actions found for SLURM deployment")
+        return
+    
+    # Process each SLURM server
+    for server_name, actions in slurm_actions.items():
+        logger.info(f"Registering workflow for SLURM: {server_name}")
+        server_config = slurm_servers[server_name]
+        
+        # Validate server configuration
+        validate_slurm_server_config(server_name, server_config)
+        
+        # Test connectivity
+        if not test_slurm_connectivity(server_name, server_config):
+            logger.error(f"Failed to connect to SLURM server: {server_name}")
+            sys.exit(1)
+        
+        # Validate each action
+        for action_name in actions:
+            validate_slurm_action(action_name, workflow_data, server_config)
+        
+        logger.info(
+            f"Successfully validated {len(actions)} action(s) for SLURM server '{server_name}'"
+        )
+    
+    logger.info(
+        f"SLURM configuration validated successfully. "
+        f"No persistent resources created - jobs will be submitted at invocation time."
+    )
+
+
+def validate_slurm_server_config(server_name, server_config):
+    """
+    Validate SLURM server configuration has required fields.
+    
+    Args:
+        server_name: Name of the SLURM server
+        server_config: Server configuration dict
+    """
+    required_fields = ["Endpoint", "APIVersion", "Partition", "UserName"]
+    missing_fields = [f for f in required_fields if not server_config.get(f)]
+    
+    if missing_fields:
+        logger.error(
+            f"SLURM server '{server_name}' configuration missing required fields: "
+            f"{', '.join(missing_fields)}"
+        )
+        sys.exit(1)
+    
+    logger.info(
+        f"SLURM server configuration validated: "
+        f"{server_config['Endpoint']} (API: {server_config['APIVersion']})"
+    )
+
+
+def test_slurm_connectivity(server_name, server_config):
+    """
+    Test connectivity to SLURM REST API endpoint (mirrors R implementation).
+    
+    Args:
+        server_name: Name of the SLURM server
+        server_config: Server configuration dict
+        
+    Returns:
+        bool: True if connectivity test passes
+    """
+    endpoint = server_config["Endpoint"]
+    api_version = server_config.get("APIVersion", "v0.0.37")
+    
+    # Ensure endpoint has protocol
+    if not endpoint.startswith("http"):
+        endpoint = f"http://{endpoint}"
+    
+    # Test ping endpoint
+    ping_url = f"{endpoint}/slurm/{api_version}/ping"
+    
+    # Prepare headers
+    headers = {"Accept": "application/json"}
+    
+    # Add JWT token and username if available (for auth testing)
+    slurm_token = os.getenv("SLURM_Token")
+    if slurm_token:
+        headers["X-SLURM-USER-TOKEN"] = slurm_token
+        username = server_config.get("UserName", "ubuntu")
+        headers["X-SLURM-USER-NAME"] = username
+        
+        # Validate token format
+        if not slurm_token.startswith("eyJ"):
+            logger.warning(
+                f"SLURM_Token for '{server_name}' doesn't appear to be a valid JWT token"
+            )
+    
+    try:
+        response = requests.get(ping_url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            logger.info(f"✓ SLURM connectivity test passed for: {server_name}")
+            return True
+        elif response.status_code in [401, 403]:
+            # Authentication required but endpoint is reachable
+            logger.info(
+                f"SLURM endpoint reachable at: {server_name} "
+            )
+            return True
+        else:
+            logger.error(
+                f"SLURM connectivity test failed: HTTP {response.status_code} - "
+                f"{response.text[:200]}"
+            )
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"SLURM connectivity error for '{server_name}': {e}")
+        return False
+
+
+def validate_slurm_action(action_name, workflow_data, server_config):
+    """
+    Validate a single SLURM action configuration.
+    
+    Args:
+        action_name: Name of the action
+        workflow_data: Full workflow JSON
+        server_config: Server configuration dict
+    """
+    action_config = workflow_data["ActionList"][action_name]
+    
+    # Validate container image
+    container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+    if not container_image:
+        logger.error(f"No container specified for SLURM action: {action_name}")
+        sys.exit(1)
+    
+    # Get resource requirements using fallback hierarchy
+    resources = get_slurm_resource_requirements(
+        action_name, action_config, server_config
+    )
+    
+    logger.info(
+        f"Validated action '{action_name}': "
+        f"container={container_image}, "
+        f"resources=[CPU:{resources['cpus_per_task']}, "
+        f"Memory:{resources['memory_mb']}MB, "
+        f"Time:{resources['time_limit']}s]"
+    )
+
+
+def get_slurm_resource_requirements(action_name, action_config, server_config):
+    """
+    Extract SLURM resource requirements with fallback hierarchy.
+    Function-level → Server-level → Default values
+    
+    Args:
+        action_name: Name of the action
+        action_config: Action configuration dict
+        server_config: Server configuration dict
+        
+    Returns:
+        dict: Resource configuration
+    """
+    # Function-level resources (highest priority)
+    function_resources = action_config.get("Resources", {})
+    
+    # Extract with fallback hierarchy
+    config = {
+        "partition": (
+            function_resources.get("Partition")
+            or server_config.get("Partition")
+            or "faasr"
+        ),
+        "nodes": (
+            function_resources.get("Nodes") 
+            or server_config.get("Nodes") 
+            or 1
+        ),
+        "tasks": (
+            function_resources.get("Tasks") 
+            or server_config.get("Tasks") 
+            or 1
+        ),
+        "cpus_per_task": (
+            function_resources.get("CPUsPerTask")
+            or server_config.get("CPUsPerTask")
+            or 1
+        ),
+        "memory_mb": (
+            function_resources.get("Memory")
+            or server_config.get("Memory")
+            or 1024
+        ),
+        "time_limit": (
+            function_resources.get("TimeLimit")
+            or server_config.get("TimeLimit")
+            or 60
+        ),
+        "working_dir": (
+            function_resources.get("WorkingDirectory")
+            or server_config.get("WorkingDirectory")
+            or "/tmp"
+        ),
+    }
+    
+    return config
+
 
 def main():
     args = parse_arguments()
@@ -745,9 +974,11 @@ def main():
             deploy_to_ow(workflow_data)
         elif faas_type == "googlecloud":
             deploy_to_gcp(workflow_data)
+        elif faas_type == "SLURM":
+            deploy_to_slurm(workflow_data)
         else:
             logger.error(f"Unsupported FaaSType: {faas_type}")
-            #sys.exit(1) #todo: remove later
+            sys.exit(1)
 
 
 if __name__ == "__main__":
