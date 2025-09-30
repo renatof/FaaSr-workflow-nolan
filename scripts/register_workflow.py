@@ -37,10 +37,10 @@ def read_workflow_file(file_path):
         with open(file_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"Error: Workflow file {file_path} not found")
+        logger.error(f"Error: Workflow file {file_path} not found")
         sys.exit(1)
     except json.JSONDecodeError:
-        print(f"Error: Invalid JSON in workflow file {file_path}")
+        logger.error(f"Error: Invalid JSON in workflow file {file_path}")
         sys.exit(1)
 
 
@@ -77,7 +77,7 @@ def generate_github_secret_imports(faasr_payload):
                 import_statements.append(f"{token}: ${{{{ secrets.{token}}}}}")
             case _:
                 logger.error(
-                    f"Unknown FaaSType ({faas_type}) for compute server: {faas_name} - cannot generate secrets"
+                    f"Unknown FaaSType ({faas_type}) for compute server: {faas_name} - cannot generate secrets" # noqa E501
                 )
                 sys.exit(1)
 
@@ -221,33 +221,43 @@ def deploy_to_github(workflow_data):
                     logger.info(f"Error updating/creating {workflow_path}: {str(e)}")
                     # Try to get more details about the error
                     if hasattr(e, "data"):
-                        print(f"Error details: {e.data}")
+                        logger.error(f"Error details: {e.data}")
                     if hasattr(e, "status"):
-                        print(f"HTTP status: {e.status}")
+                        logger.error(f"HTTP status: {e.status}")
                     raise e
 
             logger.info(f"Successfully deployed {prefixed_action_name} to GitHub")
 
     except Exception as e:
-        print(f"Error deploying to GitHub: {str(e)}")
+        logger.error(f"Error deploying to GitHub: {str(e)}")
         sys.exit(1)
 
 
-def deploy_to_aws(workflow_data):
+def get_lambda_credentials(workflow_data):
+    """Fetches AWS Lambda credentials from environment variables"""
     # Get AWS credentials
-    aws_access_key, aws_secret_key, aws_region, role_arn = get_aws_credentials()
-
-    lambda_client = boto3.client(
-        "lambda",
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key,
-        region_name=aws_region,
+    aws_access_key, aws_secret_key = os.getenv("AWS_AccessKey"), os.getenv(
+        "AWS_SecretKey"
     )
 
-    # Get the workflow name for function naming
-    workflow_name = workflow_data.get("WorkflowName", "default")
-    json_prefix = workflow_name
+    # Fail if AWS creds not set
+    if not aws_access_key or not aws_secret_key:
+        logger.error(
+            "AWS_AccessKey and AWS_SecretKey environment variables must be set"
+        )
+        sys.exit(1)
 
+    aws_region = workflow_data.get("ComputeServers", {}).get("AWS", {}).get("Region")
+
+    if not aws_region:
+        logger.warning("AWS region not specified, defaulting to us-east-1")
+        aws_region = "us-east-1"
+    
+    return (aws_access_key, aws_secret_key, aws_region)
+
+
+def deploy_to_aws(workflow_data):
+    """Deploys functions to AWS Lambda"""
     # Filter actions that should be deployed to AWS Lambda
     lambda_actions = {}
     for action_name, action_data in workflow_data["ActionList"].items():
@@ -258,14 +268,44 @@ def deploy_to_aws(workflow_data):
             lambda_actions[action_name] = action_data
 
     if not lambda_actions:
-        print("No actions found for AWS Lambda deployment")
+        logger.info("No actions found for AWS Lambda deployment")
         return
+    
+    # Get the workflow name to prepend to function names
+    workflow_name = workflow_data.get("WorkflowName")
+
+    if not workflow_name:
+        logger.error("WorkflowName is not specified in workflow file")
+        sys.exit(1)
+
+    # Get AWS credentials
+    aws_access_key, aws_secret_key, aws_region = get_lambda_credentials(workflow_data)
+
+    # Get the AWS ARN for the user
+    iam_client = boto3.client(
+        "iam",
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=aws_region,
+    )
+    try:
+        aws_arn = iam_client.get_user()["User"]["Arn"]
+    except boto3.exceptions.Boto3Error as e:
+        logger.error(f"Error fetching AWS IAM user ARN: {str(e)}")
+        sys.exit(1)
+
+    lambda_client = boto3.client(
+        "lambda",
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=aws_region,
+    )
 
     # Process each action in the workflow
     for action_name, action_data in lambda_actions.items():
         try:
             # Create prefixed function name using workflow_name-action_name format
-            prefixed_func_name = f"{json_prefix}-{action_name}"
+            prefixed_func_name = f"{workflow_name}-{action_name}"
 
             # Get container image for AWS Lambda (must be an Amazon ECR image URI)
             container_image = workflow_data.get("ActionContainers", {}).get(action_name)
@@ -273,26 +313,29 @@ def deploy_to_aws(workflow_data):
                 logger.error(f"No container specified for action: {action_name}")
                 sys.exit(1)
 
+            # TODO: remove this
             # Check payload size before deployment
-            payload_size = len(workflow_data.encode("utf-8"))
-            if payload_size > 4000:  # Lambda env var limit is ~4KB
-                logger.error(
-                    f"Warning: SECRET_PAYLOAD size ({payload_size} bytes) may exceed Lambda environment variable limits"
-                )
+            # payload_size = len(workflow_data.encode("utf-8"))
+            # if payload_size > 4000:  # Lambda env var limit is ~4KB
+            #    logger.error(
+            #        f"Warning: SECRET_PAYLOAD size ({payload_size} bytes) may exceed Lambda environment variable limits"
+            #    )
 
             # Check if function already exists first
             try:
-                existing_func = lambda_client.get_function(
-                    FunctionName=prefixed_func_name
+                lambda_client.get_function(FunctionName=prefixed_func_name)
+                logger.info(
+                    f"Function {prefixed_func_name} already exists, updating..."
                 )
-                print(f"Function {prefixed_func_name} already exists, updating...")
                 # Update existing function
                 lambda_client.update_function_code(
                     FunctionName=prefixed_func_name, ImageUri=container_image
                 )
 
                 # Wait for the function update to complete
-                print(f"Waiting for {prefixed_func_name} code update to complete...")
+                logger.info(
+                    f"Waiting for {prefixed_func_name} code update to complete..."
+                )
                 max_attempts = 60  # Wait up to 5 minutes
                 attempt = 0
                 while attempt < max_attempts:
@@ -313,12 +356,12 @@ def deploy_to_aws(workflow_data):
                             time.sleep(5)
                             attempt += 1
                     except Exception as e:
-                        print(f"Error checking function state: {str(e)}")
+                        logger.info(f"Error checking function state: {str(e)}")
                         time.sleep(5)
                         attempt += 1
 
                 if attempt >= max_attempts:
-                    print(
+                    logger.error(
                         f"Timeout waiting for {prefixed_func_name} update to complete"
                     )
                     sys.exit(1)
@@ -327,30 +370,26 @@ def deploy_to_aws(workflow_data):
                 lambda_client.update_function_configuration(
                     FunctionName=prefixed_func_name,
                 )
-                print(f"Successfully updated {prefixed_func_name} on AWS Lambda")
+                logger.info(f"Successfully updated {prefixed_func_name} on AWS Lambda")
 
             except lambda_client.exceptions.ResourceNotFoundException:
                 # Function doesn't exist, create it
-                print(f"Creating new Lambda function: {prefixed_func_name}")
+                logger.info(f"Creating new Lambda function: {prefixed_func_name}")
 
-                # Create function with minimal parameters first, then update
-                print("Creating with minimal parameters...")
+                # TODO: is minimal function necessary here?
                 try:
                     lambda_client.create_function(
                         FunctionName=prefixed_func_name,
                         PackageType="Image",
                         Code={"ImageUri": container_image},
-                        Role=role_arn,
-                        Timeout=300,  # Shorter timeout
-                        MemorySize=128,  # Minimal memory
-                    )
-                    print(
-                        f"Successfully created {prefixed_func_name} with minimal parameters"
+                        Role=aws_arn,
+                        Timeout=300,
+                        MemorySize=128,
                     )
 
                     # Wait for the function to become active before updating
-                    print(f"Waiting for {prefixed_func_name} to become active...")
-                    max_attempts = 60  # Wait up to 5 minutes
+                    logger.info(f"Waiting for {prefixed_func_name} to become active...")
+                    max_attempts = 120  # Wait up to 10 minutes
                     attempt = 0
                     while attempt < max_attempts:
                         try:
@@ -360,52 +399,60 @@ def deploy_to_aws(workflow_data):
                             state = response["Configuration"]["State"]
 
                             if state == "Active":
-                                print(f"Function {prefixed_func_name} is now active")
+                                logger.info(
+                                    f"Function {prefixed_func_name} is now active"
+                                )
                                 break
                             elif state == "Failed":
-                                print(f"Function {prefixed_func_name} creation failed")
+                                logger.error(
+                                    f"Function {prefixed_func_name} creation failed"
+                                )
                                 sys.exit(1)
                             else:
-                                print(f"Function state: {state}, waiting...")
+                                logger.info(f"Function state: {state}, waiting...")
                                 time.sleep(5)
                                 attempt += 1
                         except Exception as e:
-                            print(f"Error checking function state: {str(e)}")
+                            logger.error(f"Error checking function state: {str(e)}")
                             time.sleep(5)
                             attempt += 1
 
                     if attempt >= max_attempts:
-                        print(
-                            f"Timeout waiting for {prefixed_func_name} to become active"
+                        logger.error(
+                            f"Timeout while waiting for {prefixed_func_name} to become active"
                         )
                         sys.exit(1)
 
                     # Now update with full configuration
+                    # TODO: fetch timeout and memory size from workflow file
                     lambda_client.update_function_configuration(
                         FunctionName=prefixed_func_name,
                         Timeout=900,
                         MemorySize=1024,
                     )
-                    print(f"Updated {prefixed_func_name} with full configuration")
+                    logger.info(f"Updated {prefixed_func_name} with full configuration")
 
                 except Exception as minimal_error:
-                    print(f"Minimal creation failed: {minimal_error}")
+                    logger.error(f"Minimal creation failed: {minimal_error}")
                     raise minimal_error
-
         except Exception as e:
-            print(f"Error deploying {prefixed_func_name} to AWS: {str(e)}")
-            # Print additional debugging information
+            logger.error(f"Error deploying {prefixed_func_name} to AWS: {str(e)}")
+            # logger.error additional debugging information
             if "RequestEntityTooLargeException" in str(e):
-                print(f"Payload too large - size: {len(workflow_data)} bytes")
-                print("Consider reducing workflow complexity or using external storage")
+                logger.error(f"Payload too large - size: {len(workflow_data)} bytes")
+                logger.error(
+                    "Consider reducing workflow complexity or using external storage"
+                )
             elif "InvalidParameterValueException" in str(e):
-                print("Check Lambda configuration parameters (memory, timeout, role)")
+                logger.error(
+                    "Check Lambda configuration parameters (memory, timeout, role)"
+                )
             sys.exit(1)
 
 
 def get_openwhisk_credentials(workflow_data):
     # Get OpenWhisk server configuration from workflow data
-    for server_name, server_config in workflow_data["ComputeServers"].items():
+    for server_config in workflow_data["ComputeServers"].values():
         if server_config["FaaSType"].lower() == "openwhisk":
             return (
                 server_config["Endpoint"],
@@ -413,12 +460,13 @@ def get_openwhisk_credentials(workflow_data):
                 server_config["SSL"].lower() == "true",
             )
 
-    print("Error: No OpenWhisk server configuration found in workflow data")
+    logger.error("Error: No OpenWhisk server configuration found in workflow data")
     sys.exit(1)
 
 
 def deploy_to_ow(workflow_data):
     # Get OpenWhisk credentials
+    # TODO: use namespace and ssl
     api_host, namespace, ssl = get_openwhisk_credentials(workflow_data)
 
     # Get the workflow name for prefixing
@@ -435,7 +483,7 @@ def deploy_to_ow(workflow_data):
             ow_actions[action_name] = action_data
 
     if not ow_actions:
-        print("No actions found for OpenWhisk deployment")
+        logger.info("No actions found for OpenWhisk deployment")
         return
 
     # Set up wsk properties
@@ -445,13 +493,14 @@ def deploy_to_ow(workflow_data):
     ow_api_key = os.getenv("OW_APIkey")
     if ow_api_key:
         subprocess.run(f"wsk property set --auth {ow_api_key}", shell=True)
-        print("Using OpenWhisk with API key authentication")
+        logger.info("Using OpenWhisk with API key authentication")
     else:
-        print("Using OpenWhisk without authentication")
+        logger.info("Using OpenWhisk without authentication")
 
     # Always use insecure flag to bypass certificate issues
     subprocess.run("wsk property set --insecure", shell=True)
 
+    # TODO: why is this necessary?
     # Set environment variable to handle certificate issue
     env = os.environ.copy()
     env["GODEBUG"] = "x509ignoreCN=0"
@@ -473,16 +522,18 @@ def deploy_to_ow(workflow_data):
                 exists = subprocess.run(check_cmd, shell=True, env=env).returncode == 0
 
                 # Get container image, with fallback to default
-                container_image = workflow_data.get("ActionContainers", {}).get(
-                    action_name, "ghcr.io/faasr/openwhisk-tidyverse"
-                )
+                container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+
+                if not container_image:
+                    logger.error(f"No container specified for action: {action_name}")
+                    sys.exit(1)
 
                 if exists:
                     # Update existing action (add --insecure flag)
-                    cmd = f"wsk action update {prefixed_func_name} --docker {container_image} --insecure"
+                    cmd = f"wsk action update {prefixed_func_name} --docker {container_image} --insecure" # noqa E501
                 else:
                     # Create new action (add --insecure flag)
-                    cmd = f"wsk action create {prefixed_func_name} --docker {container_image} --insecure"
+                    cmd = f"wsk action create {prefixed_func_name} --docker {container_image} --insecure" # noqa E501
 
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, text=True, env=env
@@ -493,14 +544,14 @@ def deploy_to_ow(workflow_data):
                         f"Failed to {'update' if exists else 'create'} action: {result.stderr}"
                     )
 
-                print(f"Successfully deployed {prefixed_func_name} to OpenWhisk")
+                logger.info(f"Successfully deployed {prefixed_func_name} to OpenWhisk")
 
             except Exception as e:
-                print(f"Error deploying {prefixed_func_name} to OpenWhisk: {str(e)}")
+                logger.error(f"Error deploying {prefixed_func_name} to OpenWhisk: {str(e)}")
                 sys.exit(1)
 
         except Exception as e:
-            print(f"Error processing {prefixed_func_name}: {str(e)}")
+            logger.error(f"Error processing {prefixed_func_name}: {str(e)}")
             sys.exit(1)
 
 
@@ -512,12 +563,12 @@ def main():
     workflow_data["_workflow_file"] = args.workflow_file
 
     # Validate workflow for cycles and unreachable states
-    print("Validating workflow for cycles and unreachable states...")
+    logger.info("Validating workflow for cycles and unreachable states...")
     try:
         faasr_gf.check_dag(workflow_data)
-        print("Workflow validation passed")
+        logger.info("Workflow validation passed")
     except SystemExit:
-        print("Workflow validation failed - check logs for details")
+        logger.info("Workflow validation failed - check logs for details")
 
     # Get all unique FaaSTypes from workflow data
     faas_types = set()
@@ -526,14 +577,14 @@ def main():
             faas_types.add(server["FaaSType"].lower())
 
     if not faas_types:
-        print("Error: No FaaSType found in workflow file")
+        logger.error("Error: No FaaSType found in workflow file")
         sys.exit(1)
 
-    print(f"Found FaaS platforms: {', '.join(faas_types)}")
+    logger.info(f"Found FaaS platforms: {', '.join(faas_types)}")
 
     # Deploy to each platform found
     for faas_type in faas_types:
-        print(f"\nDeploying to {faas_type}...")
+        logger.info(f"\nDeploying to {faas_type}...")
         if faas_type == "lambda":
             deploy_to_aws(workflow_data)
         elif faas_type == "githubactions":

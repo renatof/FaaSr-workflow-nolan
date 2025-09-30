@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
 
-from FaaSr_py import FaaSrPayload
-from FaaSr_py import Scheduler
+from FaaSr_py import FaaSrPayload, Scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +35,7 @@ def get_workflow_file():
     return workflow_path
 
 
-def add_secrets_to_server(server, faas_type):
+def add_secrets_to_server_attributes(server, faas_type):
     """Adds secrets to compute server based on FaaS type"""
     match faas_type:
         case "GitHubActions":
@@ -54,7 +53,7 @@ def add_secrets_to_server(server, faas_type):
 
             if not aws_access_key or not aws_secret_key:
                 logger.error(
-                    "AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation"
+                    "AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation" # noqa E501
                 )
                 sys.exit(1)
 
@@ -74,7 +73,7 @@ def add_secrets_to_server(server, faas_type):
             gcp_secret_key = os.getenv("GCP_SecretKey")
             if not gcp_secret_key:
                 logger.error(
-                    "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation"
+                    "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation" # noqa E501
                 )
                 sys.exit(1)
             server["GCP_SecretKey"] = gcp_secret_key
@@ -135,7 +134,7 @@ def main():
 
     # Add secret to entry action so that Scheduler can invoke it
     faas_type = server["FaaSType"]
-    add_secrets_to_server(server, faas_type)
+    add_secrets_to_server_attributes(server, faas_type)
 
     # Trigger workflow
     try:
