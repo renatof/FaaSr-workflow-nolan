@@ -20,9 +20,7 @@
         "My_S3_Bucket": {
             "Bucket": "faasr-test-0001",
             "Region": "us-east-1",
-            "Writable": "TRUE",
-            "AccessKey": "My_S3_Bucket_ACCESS_KEY",
-            "SecretKey": "My_S3_Bucket_SECRET_KEY"
+            "Writable": "TRUE"
         }
     },
     "ActionList": {
