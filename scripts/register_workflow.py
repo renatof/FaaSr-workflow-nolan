@@ -10,6 +10,7 @@ import textwrap
 import time
 
 import boto3
+import requests
 from FaaSr_py import graph_functions as faasr_gf
 from github import Github
 
