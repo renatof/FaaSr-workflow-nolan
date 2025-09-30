@@ -692,7 +692,7 @@ def main():
             deploy_to_gcp(workflow_data)
         else:
             logger.error(f"Unsupported FaaSType: {faas_type}")
-            sys.exit(1)
+            #sys.exit(1) #todo: remove later
 
 
 if __name__ == "__main__":
