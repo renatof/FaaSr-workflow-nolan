@@ -42,7 +42,7 @@
     "ActionList": {
         "rfunc": {
             "FunctionName": "r_log",
-            "FaaSServer": "My_SLURM_Server",
+            "FaaSServer": "GCP",
             "Type": "R",
             "Arguments": {
                 "message": "testing testing testing"
@@ -65,7 +65,7 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ramrakha/slurm-r:dev",
+        "rfunc": "ramrakha/gcp-r:dev",
         "rfunc2": "ramrakha/slurm-r:dev"
     },
     "FunctionCRANPackage": {
