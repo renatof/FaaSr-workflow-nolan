@@ -48,10 +48,6 @@
             "gapminder"
         ]
     },
-    "PyPIPackageDownloads": {
-    },
-    "FunctionGitHubPackage": {
-    },
     "FunctionGitRepo": {
         "r_log": "nolcut/test-py"
     },
