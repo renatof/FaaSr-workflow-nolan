@@ -503,6 +503,154 @@ def deploy_to_ow(workflow_data):
             print(f"Error processing {prefixed_func_name}: {str(e)}")
             sys.exit(1)
 
+def create_gcp_job_definition(job_name, container_image, region):
+    """
+    Creates a Cloud Run Job definition following GCP's API schema.
+    
+    Environment variables for GCP:
+    - PAYLOAD_URL: URL to base workflow JSON
+    - OVERWRITTEN: JSON string with overridden fields (may contain secrets)
+    - TOKEN: GitHub PAT for fetching user functions (if available)
+
+    """
+    return {
+        "name": job_name,
+        "template": {
+            "template": {
+                "containers": [
+                    {
+                        "image": container_image,
+                        "env": [],
+                        "resources": {
+                            "limits": {
+                                "cpu": "1000m",
+                                "memory": "512Mi"
+                            }
+                        }
+                    }
+                ],
+                "maxRetries": 0,
+                "timeoutSeconds": 3600
+            }
+        }
+    }
+
+
+def deploy_to_gcp(workflow_data):
+    
+    gcp_secret_key = os.getenv("GCP_SecretKey")
+    
+    if not gcp_secret_key:
+        logger.error("GCP_SecretKey environment variable not set")
+        sys.exit(1)
+    
+    from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
+    
+    workflow_name = workflow_data.get("WorkflowName")
+    
+    if not workflow_name:
+        logger.error("WorkflowName not specified in workflow file")
+        sys.exit(1)
+    
+    gcp_actions = {}
+    gcp_server_config = None
+    gcp_server_name = None
+    
+    for action_name, action_data in workflow_data["ActionList"].items():
+        server_name = action_data["FaaSServer"]
+        server_config = workflow_data["ComputeServers"][server_name]
+        faas_type = server_config.get("FaaSType", "")
+        
+        if faas_type.lower() == "googlecloud":
+            gcp_actions[action_name] = action_data
+            if not gcp_server_config:
+                gcp_server_config = server_config.copy()
+                gcp_server_name = server_name
+    
+    if not gcp_actions:
+        logger.info("No actions found for GCP deployment")
+        return
+    
+    gcp_server_config["SecretKey"] = gcp_secret_key
+    
+    temp_payload = {
+        "ComputeServers": {
+            gcp_server_name: gcp_server_config
+        }
+    }
+    
+    try:
+        access_token = refresh_gcp_access_token(temp_payload, gcp_server_name)
+        logger.info("Successfully authenticated with GCP")
+    except Exception as e:
+        logger.error(f"Failed to authenticate with GCP: {e}")
+        sys.exit(1)
+    
+    endpoint = gcp_server_config.get("Endpoint", "run.googleapis.com/v2/projects/")
+    namespace = gcp_server_config["Namespace"]
+    region = gcp_server_config["Region"]
+    
+    if not endpoint.startswith("https://"):
+        endpoint = f"https://{endpoint}"
+    
+    base_url = f"{endpoint}{namespace}/locations/{region}/jobs"
+    
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    for action_name, action_data in gcp_actions.items():
+        job_name = f"{workflow_name}-{action_name}"
+        
+        logger.info(f"Registering GCP Cloud Run Job: {job_name}")
+        
+        container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+        
+        if not container_image:
+            logger.error(f"No container specified for action: {action_name}")
+            sys.exit(1)
+        
+        job_body = create_gcp_job_definition(
+            job_name=job_name,
+            container_image=container_image,
+            region=region
+        )
+        
+        create_url = base_url
+        create_params = {"jobId": job_name}
+        
+        response = requests.post(
+            create_url,
+            json=job_body,
+            headers=headers,
+            params=create_params
+        )
+        
+        if response.status_code in [200, 201]:
+            logger.info(f"Successfully created Cloud Run Job: {job_name}")
+        elif response.status_code == 409:
+            logger.info(f"Job {job_name} already exists, updating...")
+            update_url = f"{base_url}/{job_name}"
+            
+            response = requests.patch(
+                update_url,
+                json=job_body,
+                headers=headers
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Successfully updated Cloud Run Job: {job_name}")
+            else:
+                logger.error(f"Failed to update job {job_name}: {response.text}")
+                sys.exit(1)
+        else:
+            logger.error(f"Failed to create job {job_name}: {response.text}")
+            sys.exit(1)
+    
+    logger.info(f"Successfully registered {len(gcp_actions)} GCP Cloud Run Jobs")
+
 
 def main():
     args = parse_arguments()
@@ -540,6 +688,8 @@ def main():
             deploy_to_github(workflow_data)
         elif faas_type == "openwhisk":
             deploy_to_ow(workflow_data)
+        elif faas_type == "googlecloud":
+            deploy_to_gcp(workflow_data)
         else:
             logger.error(f"Unsupported FaaSType: {faas_type}")
             sys.exit(1)
