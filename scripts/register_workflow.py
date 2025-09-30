@@ -974,7 +974,7 @@ def main():
             deploy_to_ow(workflow_data)
         elif faas_type == "googlecloud":
             deploy_to_gcp(workflow_data)
-        elif faas_type == "SLURM":
+        elif faas_type == "slurm":
             deploy_to_slurm(workflow_data)
         else:
             logger.error(f"Unsupported FaaSType: {faas_type}")
