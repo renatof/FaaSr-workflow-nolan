@@ -571,7 +571,7 @@ def create_gcp_job_definition(container_image,service_account, resources):
                     }
                 ],
                 "timeout": f"{resources['timeout_seconds']}s",
-                "serviceAccountName": service_account
+                "serviceAccount": service_account
             }
         }
     }
