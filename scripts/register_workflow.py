@@ -44,6 +44,24 @@ def read_workflow_file(file_path):
         sys.exit(1)
 
 
+def verify_containers(workflow_data):
+    """Check if custom containers are specified via environment variable"""
+    custom_container = os.getenv("CUSTOM_CONTAINER", "false").lower() == "true"
+
+    if custom_container:
+        logger.info("Using custom containers from environment variable")
+        return
+
+    # Get set of native containers
+    with open("native_containers.txt", "r") as f:
+        native_containers = {line.strip() for line in f.readlines()}
+
+    for container in workflow_data.get("ActionContainers", {}).values():
+        if container not in native_containers:
+            logger.error(f"Custom container {container} not in native_containers.txt -- to use it, you must enable custom containers") # noqa E501
+            sys.exit(1)
+
+
 def generate_github_secret_imports(faasr_payload):
     """Generate GitHub Actions secret import commands from FaaSr payload."""
     import_statements = []
@@ -289,7 +307,7 @@ def deploy_to_aws(workflow_data):
         region_name=aws_region,
     )
     try:
-        aws_arn = iam_client.get_user()["User"]["Arn"]
+        aws_arn = iam_client.get_role()["User"]["Arn"]
     except boto3.exceptions.Boto3Error as e:
         logger.error(f"Error fetching AWS IAM user ARN: {str(e)}")
         sys.exit(1)
@@ -569,6 +587,9 @@ def main():
         logger.info("Workflow validation passed")
     except SystemExit:
         logger.info("Workflow validation failed - check logs for details")
+
+    # Verify if custom containers are specified correctly
+    verify_containers(workflow_data)
 
     # Get all unique FaaSTypes from workflow data
     faas_types = set()
