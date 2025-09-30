@@ -504,9 +504,57 @@ def deploy_to_ow(workflow_data):
             print(f"Error processing {prefixed_func_name}: {str(e)}")
             sys.exit(1)
 
-def create_gcp_job_definition(job_name, container_image, region):
+def get_gcp_resource_requirements(workflow_data, action_name, server_config):
+    """
+    Extract resource requirements with fallback hierarchy:
+    Function-level → Server-level → Default values
+    
+    Args:
+        workflow_data: Full workflow JSON
+        action_name: Name of the action
+        server_config: ComputeServers[server_name] config
+        
+    Returns:
+        dict: Resource configuration for GCP
+    """
+    action_list = workflow_data.get("ActionList", {})
+    action_config = action_list.get(action_name, {})
+    
+    function_resources = action_config.get("Resources", {})
+    
+    max_memory = action_config.get("MaxMemory")
+    max_runtime = action_config.get("MaxRuntime")
+    
+    config = {
+        "cpu": str(
+            function_resources.get("CPUsPerTask")
+            or server_config.get("CPUsPerTask")
+            or 1
+        ),
+        "memory_mb": (
+            function_resources.get("Memory")
+            or max_memory
+            or server_config.get("Memory")
+            or 512
+        ),
+        "timeout_seconds": (
+            function_resources.get("TimeLimit")
+            or max_runtime
+            or server_config.get("TimeLimit")
+            or 3600
+        )
+    }
+    
+    return config
+
+def create_gcp_job_definition(container_image,service_account, resources):
     """
     Creates a Cloud Run Job definition following GCP's API v2 schema.
+    
+    Args:
+        container_image: Container image URL
+        service_account: Service account email (REQUIRED)
+        resources: Dict with cpu, memory_mb, timeout_seconds
     """
     return {
         "template": {
@@ -516,13 +564,14 @@ def create_gcp_job_definition(job_name, container_image, region):
                         "image": container_image,
                         "resources": {
                             "limits": {
-                                "cpu": "1",
-                                "memory": "512Mi"
+                                "cpu": resources["cpu"],
+                                "memory": f"{resources['memory_mb']}Mi"
                             }
                         }
                     }
                 ],
-                "timeout": "3600s"
+                "timeout": f"{resources['timeout_seconds']}s",
+                "serviceAccountName": service_account
             }
         }
     }
@@ -603,11 +652,25 @@ def deploy_to_gcp(workflow_data):
         if not container_image:
             logger.error(f"No container specified for action: {action_name}")
             sys.exit(1)
+
+        service_account = gcp_server_config.get("ClientEmail")
+        if not service_account:
+            logger.error(
+                f"ClientEmail (service account) is required for GoogleCloud server "
+                f"but not found in ComputeServers configuration"
+            )
+            sys.exit(1)
+
+        resources = get_gcp_resource_requirements(
+            workflow_data=workflow_data,
+            action_name=action_name,
+            server_config=gcp_server_config
+        )
         
         job_body = create_gcp_job_definition(
-            job_name=job_name,
             container_image=container_image,
-            region=region
+            service_account=service_account,
+            resources=resources
         )
         
         create_url = base_url
