@@ -65,7 +65,7 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ramrakha/gcp-r:dev",
+        "rfunc": "ramrakha/gcp-r:dev2",
         "rfunc2": "ramrakha/slurm-r:dev"
     },
     "FunctionCRANPackage": {
