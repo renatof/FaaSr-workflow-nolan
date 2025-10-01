@@ -29,7 +29,7 @@
         "FaaSType": "GitHubActions",
         "UseSecretStore": true,
         "UserName": "Ashish-Ramrakhiani",
-        "ActionRepoName": "FaaSr-workflow-main"
+        "ActionRepoName": "FaaSr-workflow-public"
     }
     },
     "DataStores": {
