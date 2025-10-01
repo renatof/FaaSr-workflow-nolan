@@ -12,7 +12,7 @@
         "My_S3_Bucket": {
             "Endpoint": "https://play.min.io",
             "Bucket": "faasr",
-            "Region": "us-west-2"
+            "Region": "us-east-1"
         }
     },
     "VMConfig": {
@@ -20,7 +20,7 @@
         "Provider": "AWS",
         "Strategy": "simple_start_end",
         "InstanceId": "i-09405009da063a647",
-        "Region": "us-east-1"
+        "Region": "us-west-2"
     },
     "ActionList": {
         "rfunc": {
