@@ -92,12 +92,96 @@ def generate_github_secret_imports(faasr_payload):
                 f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
             ]
         )
+    
+    if "VMConfig" in faasr_payload:
+        vm_config = faasr_payload["VMConfig"]
+        vm_name = vm_config.get("Name")
+        
+        if vm_name:
+            provider = vm_config.get("Provider", "AWS")
+            
+            if provider == "AWS":
+                access_key = f"{vm_name}_AccessKey"
+                secret_key = f"{vm_name}_SecretKey"
+                import_statements.extend([
+                    f"{access_key}: ${{{{ secrets.{access_key}}}}}",
+                    f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+                ])
 
     # Indent each line for YAML formatting
     indent = " " * 28
     import_statements = "\n".join(f"{indent}{s}" for s in import_statements)
 
     return import_statements
+
+def generate_serverless_yaml(action_name, container_image, secret_imports):
+    """Generate YAML for serverless (GitHub-hosted runner)"""
+    return textwrap.dedent(
+        f"""\
+        name: {action_name}
+
+        on:
+            workflow_dispatch:
+                inputs:
+                    OVERWRITTEN:
+                        description: "Overwritten fields"
+                        required: true
+                    PAYLOAD_URL:
+                        description: "URL to payload"
+                        required: true
+
+        jobs:
+            run_docker_image:
+                runs-on: ubuntu-latest
+                container: {container_image}
+
+                env:
+{secret_imports}
+                    OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
+                    PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
+
+                steps:
+                  - name: Run Python entrypoint
+                    run: |
+                        cd /action
+                        python3 faasr_entry.py
+    """
+    )
+
+
+def generate_vm_yaml(action_name, container_image, secret_imports):
+    """Generate YAML for VM (self-hosted runner)"""
+    return textwrap.dedent(
+        f"""\
+        name: {action_name}
+
+        on:
+            workflow_dispatch:
+                inputs:
+                    OVERWRITTEN:
+                        description: "Overwritten fields"
+                        required: true
+                    PAYLOAD_URL:
+                        description: "URL to payload"
+                        required: true
+
+        jobs:
+            run_on_vm:
+                runs-on: self-hosted
+                container: {container_image}
+
+                env:
+{secret_imports}
+                    OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
+                    PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
+
+                steps:
+                  - name: Run Python entrypoint
+                    run: |
+                        cd /action
+                        python3 faasr_entry.py
+    """
+    )
 
 
 def deploy_to_github(workflow_data):
@@ -148,6 +232,8 @@ def deploy_to_github(workflow_data):
             # Create prefixed action name using workflow_name-action_name format
             prefixed_action_name = f"{json_prefix}-{action_name}"
 
+            requires_vm = action_data.get("RequiresVM", False)
+
             # Create workflow file
             # Get container image, with fallback to default
             container_image = workflow_data.get("ActionContainers", {}).get(action_name)
@@ -160,37 +246,18 @@ def deploy_to_github(workflow_data):
             # Dynamically set required secrets and variables
             secret_imports = generate_github_secret_imports(workflow_data)
 
-            workflow_content = textwrap.dedent(
-                f"""\
-                name: {prefixed_action_name}
-
-                on:
-                    workflow_dispatch:
-                        inputs:
-                            OVERWRITTEN:
-                                description: "Overwritten fields"
-                                required: true
-                            PAYLOAD_URL:
-                                description: "URL to payload"
-                                required: true
-
-                jobs:
-                    run_docker_image:
-                        runs-on: ubuntu-latest
-                        container: {container_image}
-
-                        env:
-{secret_imports}
-                            OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
-                            PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
-
-                        steps:
-                          - name: Run Python entrypoint
-                            run: |
-                                cd /action
-                                python3 faasr_entry.py
-            """
-            )
+            if requires_vm:
+                workflow_content = generate_vm_yaml(
+                    prefixed_action_name,
+                    container_image,
+                    secret_imports
+                )
+            else:
+                workflow_content = generate_serverless_yaml(
+                    prefixed_action_name,
+                    container_image,
+                    secret_imports
+                )
 
             # Create or update the workflow file
             workflow_path = f".github/workflows/{prefixed_action_name}.yml"
