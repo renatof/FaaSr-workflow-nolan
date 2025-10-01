@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install boto3 requests jsonschema cryptography
-          pip install FaaSr_py
+          pip install git+https://github.com/Ashish-Ramrakhiani/FaaSr-Backend.git@main
 
       - name: Install OpenWhisk CLI
         run: |
