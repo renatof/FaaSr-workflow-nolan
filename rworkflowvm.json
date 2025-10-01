@@ -44,8 +44,8 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
+        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
+        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2"
     },
     "FunctionCRANPackage": {
         "r_log": [
