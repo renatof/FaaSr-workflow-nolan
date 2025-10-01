@@ -18,7 +18,7 @@
         "Name": "AWS_VM",
         "Provider": "AWS",
         "Strategy": "simple_start_end",
-        "InstanceId": "i-YOUR_INSTANCE_ID_HERE",
+        "InstanceId": "i-09405009da063a647",
         "Region": "us-east-1"
     },
     "ActionList": {
