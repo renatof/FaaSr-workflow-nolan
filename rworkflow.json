@@ -53,11 +53,6 @@
             "FunctionName": "r_log",
             "FaaSServer": "My_SLURM_Server",
             "Type": "R",
-             "Resources": {
-                "CPUsPerTask": 2,
-                "Memory": 1024,
-                "TimeLimit": 1800
-            },
             "Arguments": {
                 "message": "testing testing testing"
             },
