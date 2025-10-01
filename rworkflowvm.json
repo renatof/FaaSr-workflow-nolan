@@ -44,8 +44,8 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ghcr.io/faasr/github-actions-r:latest",
-        "rfunc2": "ghcr.io/faasr/github-actions-r:latest"
+        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
+        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
     },
     "FunctionCRANPackage": {
         "r_log": [
