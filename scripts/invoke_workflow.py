@@ -88,7 +88,15 @@ def add_secrets_to_server(server, faas_type):
                 )
                 sys.exit(1)
             server["SecretKey"] = gcp_secret_key
-            logger.info("DEBUG: Added GCP_SecretKey to server config")
+
+            token = os.getenv("GH_PAT")
+            if not token:
+                logger.warning(
+                    "GH_PAT environment variable must be set for GitHub Action invocation"
+                )
+                sys.exit(1)
+            server["Token"] = token
+            logger.info("DEBUG: Added GH_PAT to server config")
 
         case "SLURM":
             slurm_token = os.getenv("SLURM_Token")
