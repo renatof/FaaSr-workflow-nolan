@@ -18,7 +18,6 @@
     "VMConfig": {
         "Name": "AWS_VM",
         "Provider": "AWS",
-        "Strategy": "simple_start_end",
         "InstanceId": "i-09405009da063a647",
         "Region": "us-west-2"
     },
