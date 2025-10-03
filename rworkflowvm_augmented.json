@@ -44,7 +44,7 @@
                 "message": "Running on self-hosted EC2 VM"
             },
             "InvokeNext": [
-                "_faasr_vm_stop"
+                "faasr-vm-stop"
             ]
         },
         "faasr-vm-start": {
@@ -69,8 +69,8 @@
     "ActionContainers": {
         "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
         "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "_faasr_vm_start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "_faasr_vm_stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
+        "faasr-vm-start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
+        "faasr-vm-stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
     },
     "FunctionCRANPackage": {
         "r_log": [
@@ -80,7 +80,7 @@
     "FunctionGitRepo": {
         "r_log": "nolcut/test-py"
     },
-    "FunctionInvoke": "_faasr_vm_start",
+    "FunctionInvoke": "faasr-vm-start",
     "FaaSrLog": "FaaSrLog",
     "LoggingDataStore": "My_S3_Bucket",
     "DefaultDataStore": "My_S3_Bucket",
