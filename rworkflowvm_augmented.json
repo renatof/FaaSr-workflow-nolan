@@ -18,9 +18,9 @@
     "VMConfig": {
         "Name": "AWS_VM",
         "Provider": "AWS",
+        "Strategy": "simple_start_end",
         "InstanceId": "i-09405009da063a647",
-        "Region": "us-west-2",
-        "RunnerName": "ip-172-31-39-220"
+        "Region": "us-west-2"
     },
     "ActionList": {
         "rfunc": {
@@ -67,10 +67,10 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "faasr-vm-start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
-        "faasr-vm-stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
+        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
+        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
+        "faasr-vm-start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
+        "faasr-vm-stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2"
     },
     "FunctionCRANPackage": {
         "r_log": [
