@@ -67,10 +67,10 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
-        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
-        "_faasr_vm_start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2",
-        "_faasr_vm_stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev2"
+        "rfunc": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
+        "rfunc2": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
+        "_faasr_vm_start": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev",
+        "_faasr_vm_stop": "ghcr.io/ashish-ramrakhiani/github-actions-r:dev"
     },
     "FunctionCRANPackage": {
         "r_log": [
