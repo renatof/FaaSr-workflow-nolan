@@ -12,6 +12,7 @@ import sys
 import logging
 from pathlib import Path
 from copy import deepcopy
+import os
 
 logging.basicConfig(
     level=logging.INFO,
