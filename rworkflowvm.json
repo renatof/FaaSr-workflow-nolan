@@ -20,7 +20,8 @@
         "Provider": "AWS",
         "Strategy": "simple_start_end",
         "InstanceId": "i-09405009da063a647",
-        "Region": "us-west-2"
+        "Region": "us-west-2",
+        "RunnerName":"ip-172-31-39-220"
     },
     "ActionList": {
         "rfunc": {
