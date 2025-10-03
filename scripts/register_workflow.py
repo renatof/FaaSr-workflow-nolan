@@ -109,7 +109,7 @@ def generate_github_secret_imports(faasr_payload):
                 ])
 
     # Indent each line for YAML formatting
-    indent = " " * 12
+    indent = " " * 20
     import_statements = "\n".join(f"{indent}{s}" for s in import_statements)
 
     return import_statements
