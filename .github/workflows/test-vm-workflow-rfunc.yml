@@ -16,7 +16,7 @@ jobs:
         container: ghcr.io/ashish-ramrakhiani/github-actions-r:dev
 
         env:
-    GH_PAT: ${{ secrets.GH_PAT}}
+            GH_PAT: ${{ secrets.GH_PAT}}
             My_S3_Bucket_AccessKey: ${{ secrets.My_S3_Bucket_AccessKey}}
             My_S3_Bucket_SecretKey: ${{ secrets.My_S3_Bucket_SecretKey}}
             AWS_VM_AccessKey: ${{ secrets.AWS_VM_AccessKey}}
