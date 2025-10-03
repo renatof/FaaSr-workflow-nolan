@@ -47,7 +47,7 @@
                 "_faasr_vm_stop"
             ]
         },
-        "_faasr_vm_start": {
+        "faasr-vm-start": {
             "FunctionName": "vm_start",
             "FaaSServer": "GH",
             "Type": "Python",
@@ -57,7 +57,7 @@
             ],
             "_faasr_builtin": true
         },
-        "_faasr_vm_stop": {
+        "faasr-vm-stop": {
             "FunctionName": "vm_stop",
             "FaaSServer": "GH",
             "Type": "Python",
