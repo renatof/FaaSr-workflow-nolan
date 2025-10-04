@@ -28,7 +28,6 @@ def get_workflow_file():
 
     workflow_path = parser.parse_args().workflow_file
 
-    # Verify provided workflow file is valid
     if not Path(workflow_path).is_file():
         logger.error(f"Workflow file {workflow_path} not found")
         sys.exit(1)
@@ -101,15 +100,12 @@ def add_secrets_to_server(server, faas_type):
 def main():
     """Function invocation script"""
     
-    # Step 1: Get workflow file
     workflow_path = get_workflow_file()
 
-    # Step 2: Get environment variables
     github_repo = os.getenv("GITHUB_REPOSITORY")
     ref = os.getenv("GITHUB_REF_NAME", "main")
     token = os.getenv("GH_PAT")
 
-    # Step 3: Construct file path
     file_path = f"{github_repo}/{ref}/{workflow_path}"
 
     if not token:
@@ -117,15 +113,12 @@ def main():
             "GH_PAT environment variable not set. Invocation will fail if repository is private"
         )
 
-    # Step 4: Create payload object
     try:
         workflow = FaaSrPayload(url=file_path, token=token)
     except Exception as e:
-        import traceback
-        logger.error(f"  - Full traceback:\n{traceback.format_exc()}")
+        logger.error(f"Exception raised while while initializing FaaSr payload: {e}")
         sys.exit(1)
 
-    # Step 5: Extract workflow info
     workflow_name = workflow.get("WorkflowName")
     
     if not workflow_name:
@@ -138,7 +131,6 @@ def main():
         logger.error("FunctionInvoke not found in payload")
         sys.exit(1)
 
-    # Step 6: Get server configuration
     try:
         server_name = workflow["ActionList"][entry_action_name]["FaaSServer"]
         
@@ -150,25 +142,20 @@ def main():
     except KeyError as e:
         sys.exit(1)
 
-    # Step 7: Verify UseSecretStore
     if not use_secret_store:
-        logger.error("DEBUG Step 7: UseSecretStore must be true for initial action")
-        logger.error(f"  - Current value: {use_secret_store}")
+        logger.error("UseSecretStore must be true for initial action")
         sys.exit(1)
 
-    # Step 8: Add secrets
     add_secrets_to_server(server, faas_type)
 
-    # Step 9: Trigger workflow
     try:
         faasr_scheduler = Scheduler(workflow)
+        logger.info(f"Triggering entry action: {entry_action_name}")
 
         faasr_scheduler.trigger_func(workflow_name, entry_action_name)
     except Exception as e:
-        import traceback
-        logger.error(f"  - Full traceback:\n{traceback.format_exc()}")
+        logger.error(f"Trigger failed: {e}")
         sys.exit(1)
-
-
+        
 if __name__ == "__main__":
     main()
