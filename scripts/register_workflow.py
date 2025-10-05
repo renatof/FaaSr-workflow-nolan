@@ -81,8 +81,10 @@ def generate_github_secret_imports(faasr_payload):
                 access_key = f"{faas_name}_AccessKey"
                 secret_key = f"{faas_name}_SecretKey"
                 import_statements.extend(
+                    [
                     f"{access_key}: ${{{{ secrets.{access_key}}}}}",
                     f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+                    ]
                 )
             case "OpenWhisk":
                 api_key = f"{faas_name}_APIkey"
