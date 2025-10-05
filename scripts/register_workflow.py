@@ -532,16 +532,10 @@ def deploy_to_ow(workflow_data):
             # Create prefixed function name using workflow_name-action_name format
             prefixed_func_name = f"{json_prefix}-{action_name}"
 
-            # Append namespace if specified
-            if namespace:
-                ow_action = f"{namespace}/{prefixed_func_name}"
-            else:
-                ow_action = prefixed_func_name
-
             # Create or update OpenWhisk action using wsk CLI
             try:
                 # First check if action exists (add --insecure flag)
-                check_cmd = f"wsk action get {ow_action} --insecure >/dev/null 2>&1"
+                check_cmd = f"wsk action get {prefixed_func_name} --insecure >/dev/null 2>&1"
                 exists = subprocess.run(check_cmd, shell=True, env=env).returncode == 0
 
                 # Get container image, with fallback to default
@@ -555,10 +549,10 @@ def deploy_to_ow(workflow_data):
 
                 if exists:
                     # Update existing action (add --insecure flag)
-                    cmd = f"wsk action update {ow_action} --docker {container_image} --insecure"  # noqa E501
+                    cmd = f"wsk action update {prefixed_func_name} --docker {container_image} --insecure"  # noqa E501
                 else:
                     # Create new action (add --insecure flag)
-                    cmd = f"wsk action create {ow_action} --docker {container_image} --insecure"  # noqa E501
+                    cmd = f"wsk action create {prefixed_func_name} --docker {container_image} --insecure"  # noqa E501
 
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, text=True, env=env
