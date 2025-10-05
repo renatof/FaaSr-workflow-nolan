@@ -49,7 +49,7 @@ def verify_containers(workflow_data):
     custom_container = os.getenv("CUSTOM_CONTAINER", "false").lower() == "true"
 
     if custom_container:
-        logger.info("Using custom containers from environment variable")
+        logger.info("Using custom containers")
         return
 
     # Get set of native containers
@@ -58,7 +58,9 @@ def verify_containers(workflow_data):
 
     for container in workflow_data.get("ActionContainers", {}).values():
         if container not in native_containers:
-            logger.error(f"Custom container {container} not in native_containers.txt -- to use it, you must enable custom containers") # noqa E501
+            logger.error(
+                f"Custom container {container} not in native_containers.txt -- to use it, you must enable custom containers" # noqa E501
+            )
             sys.exit(1)
 
 
@@ -95,7 +97,7 @@ def generate_github_secret_imports(faasr_payload):
                 import_statements.append(f"{token}: ${{{{ secrets.{token}}}}}")
             case _:
                 logger.error(
-                    f"Unknown FaaSType ({faas_type}) for compute server: {faas_name} - cannot generate secrets" # noqa E501
+                    f"Unknown FaaSType ({faas_type}) for compute server: {faas_name} - cannot generate secrets"  # noqa E501
                 )
                 sys.exit(1)
 
@@ -270,7 +272,7 @@ def get_lambda_credentials(workflow_data):
     if not aws_region:
         logger.warning("AWS region not specified, defaulting to us-east-1")
         aws_region = "us-east-1"
-    
+
     return (aws_access_key, aws_secret_key, aws_region)
 
 
@@ -288,7 +290,7 @@ def deploy_to_aws(workflow_data):
     if not lambda_actions:
         logger.info("No actions found for AWS Lambda deployment")
         return
-    
+
     # Get the workflow name to prepend to function names
     workflow_name = workflow_data.get("WorkflowName")
 
@@ -475,7 +477,6 @@ def get_openwhisk_credentials(workflow_data):
             return (
                 server_config["Endpoint"],
                 server_config["Namespace"],
-                server_config["SSL"].lower() == "true",
             )
 
     logger.error("Error: No OpenWhisk server configuration found in workflow data")
@@ -484,8 +485,8 @@ def get_openwhisk_credentials(workflow_data):
 
 def deploy_to_ow(workflow_data):
     # Get OpenWhisk credentials
-    # TODO: use namespace and ssl
-    api_host, namespace, ssl = get_openwhisk_credentials(workflow_data)
+    # TODO: AllowSelfSignedCertifcate
+    api_host, namespace = get_openwhisk_credentials(workflow_data)
 
     # Get the workflow name for prefixing
     workflow_name = workflow_data.get("WorkflowName", "default")
@@ -497,7 +498,7 @@ def deploy_to_ow(workflow_data):
         server_name = action_data["FaaSServer"]
         server_config = workflow_data["ComputeServers"][server_name]
         faas_type = server_config["FaaSType"].lower()
-        if faas_type in ["openwhisk", "open_whisk", "ow"]:
+        if faas_type == "openwhisk":
             ow_actions[action_name] = action_data
 
     if not ow_actions:
@@ -526,21 +527,25 @@ def deploy_to_ow(workflow_data):
     # Process each action in the workflow
     for action_name, action_data in ow_actions.items():
         try:
-            actual_func_name = action_data["FunctionName"]
-
             # Create prefixed function name using workflow_name-action_name format
             prefixed_func_name = f"{json_prefix}-{action_name}"
+
+            # Append namespace if specified
+            if namespace:
+                ow_action = f"{namespace}/{prefixed_func_name}"
+            else:
+                ow_action = prefixed_func_name
 
             # Create or update OpenWhisk action using wsk CLI
             try:
                 # First check if action exists (add --insecure flag)
-                check_cmd = (
-                    f"wsk action get {prefixed_func_name} --insecure >/dev/null 2>&1"
-                )
+                check_cmd = f"wsk action get {ow_action} --insecure >/dev/null 2>&1"
                 exists = subprocess.run(check_cmd, shell=True, env=env).returncode == 0
 
                 # Get container image, with fallback to default
-                container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+                container_image = workflow_data.get("ActionContainers", {}).get(
+                    action_name
+                )
 
                 if not container_image:
                     logger.error(f"No container specified for action: {action_name}")
@@ -548,10 +553,10 @@ def deploy_to_ow(workflow_data):
 
                 if exists:
                     # Update existing action (add --insecure flag)
-                    cmd = f"wsk action update {prefixed_func_name} --docker {container_image} --insecure" # noqa E501
+                    cmd = f"wsk action update {ow_action} --docker {container_image} --insecure"  # noqa E501
                 else:
                     # Create new action (add --insecure flag)
-                    cmd = f"wsk action create {prefixed_func_name} --docker {container_image} --insecure" # noqa E501
+                    cmd = f"wsk action create {ow_action} --docker {container_image} --insecure"  # noqa E501
 
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, text=True, env=env
@@ -565,7 +570,9 @@ def deploy_to_ow(workflow_data):
                 logger.info(f"Successfully deployed {prefixed_func_name} to OpenWhisk")
 
             except Exception as e:
-                logger.error(f"Error deploying {prefixed_func_name} to OpenWhisk: {str(e)}")
+                logger.error(
+                    f"Error deploying {prefixed_func_name} to OpenWhisk: {str(e)}"
+                )
                 sys.exit(1)
 
         except Exception as e:

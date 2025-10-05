@@ -53,7 +53,7 @@ def add_secrets_to_server_attributes(server, faas_type):
 
             if not aws_access_key or not aws_secret_key:
                 logger.error(
-                    "AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation" # noqa E501
+                    "AWS_AccessKey and AWS_SecretKey environment variables must be set for Lambda invocation"  # noqa E501
                 )
                 sys.exit(1)
 
@@ -73,7 +73,7 @@ def add_secrets_to_server_attributes(server, faas_type):
             gcp_secret_key = os.getenv("GCP_SecretKey")
             if not gcp_secret_key:
                 logger.error(
-                    "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation" # noqa E501
+                    "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation"  # noqa E501
                 )
                 sys.exit(1)
             server["GCP_SecretKey"] = gcp_secret_key
