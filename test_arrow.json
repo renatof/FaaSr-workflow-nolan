@@ -11,7 +11,7 @@
             "InvokeNext": [
                 "test-arrow"
             ],
-            "FaaSServer": "AWS",
+            "FaaSServer": "GH",
             "Type": "Python",
             "FunctionName": "create_input"
         },
@@ -25,7 +25,7 @@
                 "output2": "output2-R.txt"
             },
             "InvokeNext": [],
-            "FaaSServer": "AWS",
+            "FaaSServer": "OW",
             "Type": "R",
             "FunctionName": "test_arrow"
         }
@@ -40,7 +40,15 @@
         },
         "AWS": {
             "FaaSType": "Lambda",
-            "Region": "us-east-1"
+            "Region": "us-east-1",
+            "UseSecretStore": true
+        },
+        "OW": {
+            "UseSecretStore": false,
+            "FaaSType": "OpenWhisk",
+            "Namespace": "guest",
+            "Endpoint": "ow.faasr.io:31002",
+            "API.key": "filler for now"
         }
     },
     "DataStores": {
@@ -53,7 +61,7 @@
     },
     "ActionContainers": {
         "create-input": "ghcr.io/faasr/github-actions-python:dev",
-        "test-arrow": "ghcr.io/faasr/github-actions-r:dev"
+        "test-arrow": "faasr/openwhisk-r:dev"
     },
     "FunctionInvoke": "create-input",
     "DefaultDataStore": "My_Minio_Bucket",
@@ -67,17 +75,3 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
