@@ -17,6 +17,9 @@ jobs:
 
         env:
             GH_PAT: ${{ secrets.GH_PAT}}
+            AWS_AccessKey: ${{ secrets.AWS_AccessKey}}
+            AWS_SecretKey: ${{ secrets.AWS_SecretKey}}
+            OW_APIkey: ${{ secrets.OW_APIkey}}
             My_Minio_Bucket_AccessKey: ${{ secrets.My_Minio_Bucket_AccessKey}}
             My_Minio_Bucket_SecretKey: ${{ secrets.My_Minio_Bucket_SecretKey}}
             OVERWRITTEN: ${{ github.event.inputs.OVERWRITTEN }}
