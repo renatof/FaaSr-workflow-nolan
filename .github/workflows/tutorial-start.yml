@@ -13,9 +13,10 @@ on:
 jobs:
     run_docker_image:
         runs-on: ubuntu-latest
-        container: ghcr.io/faasr/github-actions-r:dev
+        container: faasr/openwhisk-r:dev
 
         env:
+            OW_APIkey: ${{ secrets.OW_APIkey}}
             GH_PAT: ${{ secrets.GH_PAT}}
             My_S3_Bucket_AccessKey: ${{ secrets.My_S3_Bucket_AccessKey}}
             My_S3_Bucket_SecretKey: ${{ secrets.My_S3_Bucket_SecretKey}}
