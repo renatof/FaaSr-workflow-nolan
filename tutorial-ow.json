@@ -50,7 +50,7 @@
     }
   },
   "ActionContainers": {
-    "start": "faasr/openwhisk-r:dev",
+    "start": "ghcr.io/faasr/github-actions-r:dev",
     "sum": "faasr/openwhisk-r:dev"
   },
   "FunctionInvoke": "start",
