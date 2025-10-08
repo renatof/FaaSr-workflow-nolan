@@ -30,7 +30,8 @@
         "OW": {
             "FaaSType": "OpenWhisk",
             "Namespace": "guest",
-            "SSL": "False",
+            "UseSecretStore": false,
+            "AllowSelfSignedCertificate": "False",
             "Endpoint": "ow.faasr.io:31002"
         },
         "GH": {
