@@ -31,7 +31,6 @@
             "FaaSType": "OpenWhisk",
             "Namespace": "guest",
             "UseSecretStore": false,
-            "AllowSelfSignedCertificate": "False",
             "Endpoint": "ow.faasr.io:31002",
             "API.key": "filler for now"
         },
