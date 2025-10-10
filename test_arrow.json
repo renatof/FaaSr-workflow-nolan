@@ -33,9 +33,9 @@
     "ComputeServers": {
         "GH": {
             "FaaSType": "GitHubActions",
-            "UserName": "nolcut",
+            "UserName": "renatof",
             "UseSecretStore": true,
-            "ActionRepoName": "FaaSr-workflow",
+            "ActionRepoName": "FaaSr-workflow-nolan",
             "Branch": "main"
         },
         "AWS": {
@@ -75,5 +75,6 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
 
