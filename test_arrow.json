@@ -25,7 +25,7 @@
                 "output2": "output2-R.txt"
             },
             "InvokeNext": [],
-            "FaaSServer": "OW",
+            "FaaSServer": "GH",
             "Type": "R",
             "FunctionName": "test_arrow"
         }
@@ -75,6 +75,7 @@
     "WorkflowName": "test_arrow"
 
 }
+
 
 
 
