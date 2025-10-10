@@ -72,9 +72,10 @@
     "LoggingDataStore": "My_Minio_Bucket",
     "FaaSrLog": "FaaSrLog",
     "InvocationID": "",
-    "WorkflowName": "Arrow-Workflow"
+    "WorkflowName": "test_arrow"
 
 }
+
 
 
 
