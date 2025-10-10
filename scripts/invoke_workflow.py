@@ -27,7 +27,6 @@ def get_workflow_file():
 
     workflow_path = parser.parse_args().workflow_file
 
-    # Verify provided workflow file is valid
     if not Path(workflow_path).is_file():
         logger.error(f"Workflow file {workflow_path} not found")
         sys.exit(1)
@@ -37,6 +36,7 @@ def get_workflow_file():
 
 def add_secrets_to_server_attributes(server, faas_type):
     """Adds secrets to compute server based on FaaS type"""
+    
     match faas_type:
         case "GitHubActions":
             token = os.getenv("GH_PAT")
@@ -76,7 +76,15 @@ def add_secrets_to_server_attributes(server, faas_type):
                     "GCP_SecretKey environment variable must be set for Google Cloud Functions invocation"  # noqa E501
                 )
                 sys.exit(1)
-            server["GCP_SecretKey"] = gcp_secret_key
+            server["SecretKey"] = gcp_secret_key
+
+            token = os.getenv("GH_PAT")
+            if not token:
+                logger.warning(
+                    "GH_PAT environment variable must be set for GitHub Action invocation"
+                )
+                sys.exit(1)
+            server["Token"] = token
 
         case "SLURM":
             slurm_token = os.getenv("SLURM_Token")
@@ -90,22 +98,20 @@ def add_secrets_to_server_attributes(server, faas_type):
 
 def main():
     """Function invocation script"""
+    
     workflow_path = get_workflow_file()
 
     github_repo = os.getenv("GITHUB_REPOSITORY")
-
     ref = os.getenv("GITHUB_REF_NAME", "main")
+    token = os.getenv("GH_PAT")
 
     file_path = f"{github_repo}/{ref}/{workflow_path}"
 
-    token = os.getenv("GH_PAT")
-
     if not token:
         logger.warning(
-            "GH_PAT environment variable not set. Inovcation will fail if repository is private"
+            "GH_PAT environment variable not set. Invocation will fail if repository is private"
         )
 
-    # Create payload object
     try:
         workflow = FaaSrPayload(url=file_path, token=token)
     except Exception as e:
@@ -113,40 +119,45 @@ def main():
         sys.exit(1)
 
     workflow_name = workflow.get("WorkflowName")
+    
     if not workflow_name:
         logger.error("WorkflowName not found in payload")
         sys.exit(1)
 
     entry_action_name = workflow.get("FunctionInvoke")
-
+    
     if not entry_action_name:
         logger.error("FunctionInvoke not found in payload")
         sys.exit(1)
 
-    # Get FaaS server for entry action
-    server_name = workflow["ActionList"][entry_action_name]["FaaSServer"]
-    server = workflow["ComputeServers"][server_name]
+    try:
+        server_name = workflow["ActionList"][entry_action_name]["FaaSServer"]
+        
+        server = workflow["ComputeServers"][server_name]
+        
+        faas_type = server["FaaSType"]
+        
+        use_secret_store = server.get("UseSecretStore", False)
+    except KeyError as e:
+        sys.exit(1)
 
-    # Verify first action uses secret store; this may be changed later on
-    if not server.get("UseSecretStore"):
+    if not use_secret_store:
         logger.error("UseSecretStore must be true for initial action")
         sys.exit(1)
 
+    add_secrets_to_server(server, faas_type)
     # Add secret to entry action so that Scheduler can invoke it
     faas_type = server["FaaSType"]
     add_secrets_to_server_attributes(server, faas_type)
 
-    # Trigger workflow
     try:
         faasr_scheduler = Scheduler(workflow)
-
         logger.info(f"Triggering entry action: {entry_action_name}")
 
         faasr_scheduler.trigger_func(workflow_name, entry_action_name)
     except Exception as e:
         logger.error(f"Trigger failed: {e}")
         sys.exit(1)
-
-
+        
 if __name__ == "__main__":
     main()
