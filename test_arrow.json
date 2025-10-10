@@ -61,7 +61,7 @@
     },
     "ActionContainers": {
         "create-input": "ghcr.io/faasr/github-actions-python:latest",
-        "test-arrow": "faasr/openwhisk-r:latest"
+        "test-arrow": "ghcr.io/faasr/github-actions-r:latest"
     },
     "FunctionInvoke": "create-input",
     "DefaultDataStore": "My_S3_Bucket",
@@ -75,6 +75,7 @@
     "WorkflowName": "test_arrow"
 
 }
+
 
 
 
