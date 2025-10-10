@@ -60,8 +60,8 @@
         }
     },
     "ActionContainers": {
-        "create-input": "ghcr.io/faasr/github-actions-python-test:dev",
-        "test-arrow": "faasr/openwhisk-r:dev"
+        "create-input": "ghcr.io/faasr/github-actions-python:latest",
+        "test-arrow": "faasr/openwhisk-r:latest"
     },
     "FunctionInvoke": "create-input",
     "DefaultDataStore": "My_Minio_Bucket",
@@ -75,4 +75,5 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
