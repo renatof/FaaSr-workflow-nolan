@@ -52,7 +52,7 @@
         }
     },
     "DataStores": {
-        "My_Minio_Bucket": {
+        "My_S3_Bucket": {
             "Endpoint": "https://play.min.io",
             "Bucket": "faasr-integration-tests",
             "Region": "us-east-1",
@@ -64,17 +64,18 @@
         "test-arrow": "faasr/openwhisk-r:latest"
     },
     "FunctionInvoke": "create-input",
-    "DefaultDataStore": "My_Minio_Bucket",
+    "DefaultDataStore": "My_S3_Bucket",
     "FunctionGitRepo": {
         "create_input": "JStover95/FaaSr-Testing-Functions/arrow_test_functions",
         "test_arrow": "JStover95/FaaSr-Testing-Functions/arrow_test_functions"
     },
-    "LoggingDataStore": "My_Minio_Bucket",
+    "LoggingDataStore": "My_S3_Bucket",
     "FaaSrLog": "FaaSrLog",
     "InvocationID": "",
     "WorkflowName": "test_arrow"
 
 }
+
 
 
 
