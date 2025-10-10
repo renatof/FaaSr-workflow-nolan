@@ -60,7 +60,7 @@
         }
     },
     "ActionContainers": {
-        "create-input": "ghcr.io/faasr/github-actions-python:dev",
+        "create-input": "ghcr.io/faasr/github-actions-python-test:dev",
         "test-arrow": "faasr/openwhisk-r:dev"
     },
     "FunctionInvoke": "create-input",
@@ -75,3 +75,4 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+

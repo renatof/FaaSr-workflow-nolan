@@ -1,4 +1,4 @@
-name: Arrow-Workflow-create-input
+name: test-vm-workflow-rfunc
 
 on:
     workflow_dispatch:
@@ -13,15 +13,14 @@ on:
 jobs:
     run_docker_image:
         runs-on: ubuntu-latest
-        container: ghcr.io/faasr/github-actions-python-test:dev
+        container: ghcr.io/ashish-ramrakhiani/github-actions-r:dev
 
         env:
             GH_PAT: ${{ secrets.GH_PAT}}
-            AWS_AccessKey: ${{ secrets.AWS_AccessKey}}
-            AWS_SecretKey: ${{ secrets.AWS_SecretKey}}
-            OW_APIkey: ${{ secrets.OW_APIkey}}
-            My_Minio_Bucket_AccessKey: ${{ secrets.My_Minio_Bucket_AccessKey}}
-            My_Minio_Bucket_SecretKey: ${{ secrets.My_Minio_Bucket_SecretKey}}
+            My_S3_Bucket_AccessKey: ${{ secrets.My_S3_Bucket_AccessKey}}
+            My_S3_Bucket_SecretKey: ${{ secrets.My_S3_Bucket_SecretKey}}
+            AWS_VM_AccessKey: ${{ secrets.AWS_VM_AccessKey}}
+            AWS_VM_SecretKey: ${{ secrets.AWS_VM_SecretKey}}
             OVERWRITTEN: ${{ github.event.inputs.OVERWRITTEN }}
             PAYLOAD_URL: ${{ github.event.inputs.PAYLOAD_URL }}
 

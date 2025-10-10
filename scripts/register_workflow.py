@@ -10,6 +10,7 @@ import textwrap
 import time
 
 import boto3
+import requests
 from FaaSr_py import graph_functions as faasr_gf
 from github import Github
 
@@ -113,12 +114,96 @@ def generate_github_secret_imports(faasr_payload):
                 f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
             ]
         )
+    
+    if "VMConfig" in faasr_payload:
+        vm_config = faasr_payload["VMConfig"]
+        vm_name = vm_config.get("Name")
+        
+        if vm_name:
+            provider = vm_config.get("Provider", "AWS")
+            
+            if provider == "AWS":
+                access_key = f"{vm_name}_AccessKey"
+                secret_key = f"{vm_name}_SecretKey"
+                import_statements.extend([
+                    f"{access_key}: ${{{{ secrets.{access_key}}}}}",
+                    f"{secret_key}: ${{{{ secrets.{secret_key}}}}}",
+                ])
 
     # Indent each line for YAML formatting
-    indent = " " * 28
+    indent = " " * 20
     import_statements = "\n".join(f"{indent}{s}" for s in import_statements)
 
     return import_statements
+
+def generate_serverless_yaml(action_name, container_image, secret_imports):
+    """Generate YAML for serverless (GitHub-hosted runner)"""
+    return textwrap.dedent(
+        f"""\
+        name: {action_name}
+
+        on:
+            workflow_dispatch:
+                inputs:
+                    OVERWRITTEN:
+                        description: "Overwritten fields"
+                        required: true
+                    PAYLOAD_URL:
+                        description: "URL to payload"
+                        required: true
+
+        jobs:
+            run_docker_image:
+                runs-on: ubuntu-latest
+                container: {container_image}
+
+                env:
+{secret_imports}
+                    OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
+                    PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
+
+                steps:
+                  - name: Run Python entrypoint
+                    run: |
+                        cd /action
+                        python3 faasr_entry.py
+    """
+    )
+
+
+def generate_vm_yaml(action_name, container_image, secret_imports):
+    """Generate YAML for VM (self-hosted runner)"""
+    return textwrap.dedent(
+        f"""\
+        name: {action_name}
+
+        on:
+            workflow_dispatch:
+                inputs:
+                    OVERWRITTEN:
+                        description: "Overwritten fields"
+                        required: true
+                    PAYLOAD_URL:
+                        description: "URL to payload"
+                        required: true
+
+        jobs:
+            run_on_vm:
+                runs-on: self-hosted
+                container: {container_image}
+
+                env:
+{secret_imports}
+                    OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
+                    PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
+
+                steps:
+                  - name: Run Python entrypoint
+                    run: |
+                        cd /action
+                        python3 faasr_entry.py
+    """
+    )
 
 
 def deploy_to_github(workflow_data):
@@ -169,6 +254,8 @@ def deploy_to_github(workflow_data):
             # Create prefixed action name using workflow_name-action_name format
             prefixed_action_name = f"{json_prefix}-{action_name}"
 
+            requires_vm = action_data.get("RequiresVM", False)
+
             # Create workflow file
             # Get container image, with fallback to default
             container_image = workflow_data.get("ActionContainers", {}).get(action_name)
@@ -181,37 +268,18 @@ def deploy_to_github(workflow_data):
             # Dynamically set required secrets and variables
             secret_imports = generate_github_secret_imports(workflow_data)
 
-            workflow_content = textwrap.dedent(
-                f"""\
-                name: {prefixed_action_name}
-
-                on:
-                    workflow_dispatch:
-                        inputs:
-                            OVERWRITTEN:
-                                description: "Overwritten fields"
-                                required: true
-                            PAYLOAD_URL:
-                                description: "URL to payload"
-                                required: true
-
-                jobs:
-                    run_docker_image:
-                        runs-on: ubuntu-latest
-                        container: {container_image}
-
-                        env:
-{secret_imports}
-                            OVERWRITTEN: ${{{{ github.event.inputs.OVERWRITTEN }}}}
-                            PAYLOAD_URL: ${{{{ github.event.inputs.PAYLOAD_URL }}}}
-
-                        steps:
-                          - name: Run Python entrypoint
-                            run: |
-                                cd /action
-                                python3 faasr_entry.py
-            """
-            )
+            if requires_vm:
+                workflow_content = generate_vm_yaml(
+                    prefixed_action_name,
+                    container_image,
+                    secret_imports
+                )
+            else:
+                workflow_content = generate_serverless_yaml(
+                    prefixed_action_name,
+                    container_image,
+                    secret_imports
+                )
 
             # Create or update the workflow file
             workflow_path = f".github/workflows/{prefixed_action_name}.yml"
@@ -575,6 +643,437 @@ def deploy_to_ow(workflow_data):
             logger.error(f"Error processing {prefixed_func_name}: {str(e)}")
             sys.exit(1)
 
+def get_gcp_resource_requirements(workflow_data, action_name, server_config):
+    """
+    Extract resource requirements with fallback hierarchy:
+    Function-level → Server-level → Default values
+    
+    Args:
+        workflow_data: Full workflow JSON
+        action_name: Name of the action
+        server_config: ComputeServers[server_name] config
+        
+    Returns:
+        dict: Resource configuration for GCP
+    """
+    action_list = workflow_data.get("ActionList", {})
+    action_config = action_list.get(action_name, {})
+    
+    function_resources = action_config.get("Resources", {})
+    
+    max_memory = action_config.get("MaxMemory")
+    max_runtime = action_config.get("MaxRuntime")
+    
+    config = {
+        "cpu": str(
+            function_resources.get("CPUsPerTask")
+            or server_config.get("CPUsPerTask")
+            or 1
+        ),
+        "memory_mb": (
+            function_resources.get("Memory")
+            or max_memory
+            or server_config.get("Memory")
+            or 512
+        ),
+        "timeout_seconds": (
+            function_resources.get("TimeLimit")
+            or max_runtime
+            or server_config.get("TimeLimit")
+            or 3600
+        )
+    }
+    
+    return config
+
+def create_gcp_job_definition(container_image,service_account, resources):
+    """
+    Creates a Cloud Run Job definition following GCP's API v2 schema.
+    
+    Args:
+        container_image: Container image URL
+        service_account: Service account email (REQUIRED)
+        resources: Dict with cpu, memory_mb, timeout_seconds
+    """
+    return {
+        "template": {
+            "template": {
+                "containers": [
+                    {
+                        "image": container_image,
+                        "resources": {
+                            "limits": {
+                                "cpu": resources["cpu"],
+                                "memory": f"{resources['memory_mb']}Mi"
+                            }
+                        }
+                    }
+                ],
+                "timeout": f"{resources['timeout_seconds']}s",
+                "serviceAccount": service_account
+            }
+        }
+    }
+
+
+def deploy_to_gcp(workflow_data):
+    
+    gcp_secret_key = os.getenv("GCP_SecretKey")
+    
+    if not gcp_secret_key:
+        logger.error("GCP_SecretKey environment variable not set")
+        sys.exit(1)
+    
+    from FaaSr_py.helpers.gcp_auth import refresh_gcp_access_token
+    
+    workflow_name = workflow_data.get("WorkflowName")
+    
+    if not workflow_name:
+        logger.error("WorkflowName not specified in workflow file")
+        sys.exit(1)
+    
+    gcp_actions = {}
+    gcp_server_config = None
+    gcp_server_name = None
+    
+    for action_name, action_data in workflow_data["ActionList"].items():
+        server_name = action_data["FaaSServer"]
+        server_config = workflow_data["ComputeServers"][server_name]
+        faas_type = server_config.get("FaaSType", "")
+        
+        if faas_type.lower() == "googlecloud":
+            gcp_actions[action_name] = action_data
+            if not gcp_server_config:
+                gcp_server_config = server_config.copy()
+                gcp_server_name = server_name
+    
+    if not gcp_actions:
+        logger.info("No actions found for GCP deployment")
+        return
+    
+    gcp_server_config["SecretKey"] = gcp_secret_key
+    
+    temp_payload = {
+        "ComputeServers": {
+            gcp_server_name: gcp_server_config
+        }
+    }
+    
+    try:
+        access_token = refresh_gcp_access_token(temp_payload, gcp_server_name)
+        logger.info("Successfully authenticated with GCP")
+    except Exception as e:
+        logger.error(f"Failed to authenticate with GCP: {e}")
+        sys.exit(1)
+    
+    endpoint = gcp_server_config.get("Endpoint", "run.googleapis.com/v2/projects/")
+    namespace = gcp_server_config["Namespace"]
+    region = gcp_server_config["Region"]
+    
+    if not endpoint.startswith("https://"):
+        endpoint = f"https://{endpoint}"
+    
+    base_url = f"{endpoint}{namespace}/locations/{region}/jobs"
+    
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    
+    for action_name, action_data in gcp_actions.items():
+        job_name = f"{workflow_name}-{action_name}"
+        
+        logger.info(f"Registering GCP Cloud Run Job: {job_name}")
+        
+        container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+        
+        if not container_image:
+            logger.error(f"No container specified for action: {action_name}")
+            sys.exit(1)
+
+        service_account = gcp_server_config.get("ClientEmail")
+        if not service_account:
+            logger.error(
+                f"ClientEmail (service account) is required for GoogleCloud server "
+                f"but not found in ComputeServers configuration"
+            )
+            sys.exit(1)
+
+        resources = get_gcp_resource_requirements(
+            workflow_data=workflow_data,
+            action_name=action_name,
+            server_config=gcp_server_config
+        )
+        
+        job_body = create_gcp_job_definition(
+            container_image=container_image,
+            service_account=service_account,
+            resources=resources
+        )
+        
+        create_url = base_url
+        create_params = {"jobId": job_name}
+        
+        response = requests.post(
+            create_url,
+            json=job_body,
+            headers=headers,
+            params=create_params
+        )
+        
+        if response.status_code in [200, 201]:
+            logger.info(f"Successfully created Cloud Run Job: {job_name}")
+        elif response.status_code == 409:
+            logger.info(f"Job {job_name} already exists, updating...")
+            update_url = f"{base_url}/{job_name}"
+            
+            response = requests.patch(
+                update_url,
+                json=job_body,
+                headers=headers
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Successfully updated Cloud Run Job: {job_name}")
+            else:
+                logger.error(f"Failed to update job {job_name}: {response.text}")
+                sys.exit(1)
+        else:
+            logger.error(f"Failed to create job {job_name}: {response.text}")
+            sys.exit(1)
+    
+    logger.info(f"Successfully registered {len(gcp_actions)} GCP Cloud Run Jobs")
+
+def deploy_to_slurm(workflow_data):
+    """
+    Validate SLURM configuration and test connectivity.
+    This function validates configuration and tests connectivity.
+    
+    Args:
+        workflow_data: Full workflow JSON
+    """
+    logger.info("Validating SLURM configuration...")
+    
+    # Find all SLURM actions
+    slurm_actions = {}
+    slurm_servers = {}
+    
+    for action_name, action_data in workflow_data["ActionList"].items():
+        server_name = action_data["FaaSServer"]
+        server_config = workflow_data["ComputeServers"][server_name]
+        faas_type = server_config.get("FaaSType", "")
+        
+        if faas_type == "SLURM":
+            if server_name not in slurm_actions:
+                slurm_actions[server_name] = []
+                slurm_servers[server_name] = server_config.copy()
+            slurm_actions[server_name].append(action_name)
+    
+    if not slurm_actions:
+        logger.info("No actions found for SLURM deployment")
+        return
+    
+    # Process each SLURM server
+    for server_name, actions in slurm_actions.items():
+        logger.info(f"Registering workflow for SLURM: {server_name}")
+        server_config = slurm_servers[server_name]
+        
+        # Validate server configuration
+        validate_slurm_server_config(server_name, server_config)
+        
+        # Test connectivity
+        if not test_slurm_connectivity(server_name, server_config):
+            logger.error(f"Failed to connect to SLURM server: {server_name}")
+            sys.exit(1)
+        
+        # Validate each action
+        for action_name in actions:
+            validate_slurm_action(action_name, workflow_data, server_config)
+        
+        logger.info(
+            f"Successfully validated {len(actions)} action(s) for SLURM server '{server_name}'"
+        )
+    
+    logger.info(
+        f"SLURM configuration validated successfully. "
+        f"No persistent resources created - jobs will be submitted at invocation time."
+    )
+
+
+def validate_slurm_server_config(server_name, server_config):
+    """
+    Validate SLURM server configuration has required fields.
+    
+    Args:
+        server_name: Name of the SLURM server
+        server_config: Server configuration dict
+    """
+    required_fields = ["Endpoint", "APIVersion", "Partition", "UserName"]
+    missing_fields = [f for f in required_fields if not server_config.get(f)]
+    
+    if missing_fields:
+        logger.error(
+            f"SLURM server '{server_name}' configuration missing required fields: "
+            f"{', '.join(missing_fields)}"
+        )
+        sys.exit(1)
+    
+    logger.info(
+        f"SLURM server configuration validated: "
+        f"{server_config['Endpoint']} (API: {server_config['APIVersion']})"
+    )
+
+
+def test_slurm_connectivity(server_name, server_config):
+    """
+    Test connectivity to SLURM REST API endpoint (mirrors R implementation).
+    
+    Args:
+        server_name: Name of the SLURM server
+        server_config: Server configuration dict
+        
+    Returns:
+        bool: True if connectivity test passes
+    """
+    endpoint = server_config["Endpoint"]
+    api_version = server_config.get("APIVersion", "v0.0.37")
+    
+    # Ensure endpoint has protocol
+    if not endpoint.startswith("http"):
+        endpoint = f"http://{endpoint}"
+    
+    # Test ping endpoint
+    ping_url = f"{endpoint}/slurm/{api_version}/ping"
+    
+    # Prepare headers
+    headers = {"Accept": "application/json"}
+    
+    # Add JWT token and username if available (for auth testing)
+    slurm_token = os.getenv("SLURM_Token")
+    if slurm_token:
+        headers["X-SLURM-USER-TOKEN"] = slurm_token
+        username = server_config.get("UserName", "ubuntu")
+        headers["X-SLURM-USER-NAME"] = username
+        
+        # Validate token format
+        if not slurm_token.startswith("eyJ"):
+            logger.warning(
+                f"SLURM_Token for '{server_name}' doesn't appear to be a valid JWT token"
+            )
+    
+    try:
+        response = requests.get(ping_url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            logger.info(f"✓ SLURM connectivity test passed for: {server_name}")
+            return True
+        elif response.status_code in [401, 403]:
+            # Authentication required but endpoint is reachable
+            logger.info(
+                f"SLURM endpoint reachable at: {server_name} "
+            )
+            return True
+        else:
+            logger.error(
+                f"SLURM connectivity test failed: HTTP {response.status_code} - "
+                f"{response.text[:200]}"
+            )
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"SLURM connectivity error for '{server_name}': {e}")
+        return False
+
+
+def validate_slurm_action(action_name, workflow_data, server_config):
+    """
+    Validate a single SLURM action configuration.
+    
+    Args:
+        action_name: Name of the action
+        workflow_data: Full workflow JSON
+        server_config: Server configuration dict
+    """
+    action_config = workflow_data["ActionList"][action_name]
+    
+    # Validate container image
+    container_image = workflow_data.get("ActionContainers", {}).get(action_name)
+    if not container_image:
+        logger.error(f"No container specified for SLURM action: {action_name}")
+        sys.exit(1)
+    
+    # Get resource requirements using fallback hierarchy
+    resources = get_slurm_resource_requirements(
+        action_name, action_config, server_config
+    )
+    
+    logger.info(
+        f"Validated action '{action_name}': "
+        f"container={container_image}, "
+        f"resources=[CPU:{resources['cpus_per_task']}, "
+        f"Memory:{resources['memory_mb']}MB, "
+        f"Time:{resources['time_limit']}s]"
+    )
+
+
+def get_slurm_resource_requirements(action_name, action_config, server_config):
+    """
+    Extract SLURM resource requirements with fallback hierarchy.
+    Function-level → Server-level → Default values
+    
+    Args:
+        action_name: Name of the action
+        action_config: Action configuration dict
+        server_config: Server configuration dict
+        
+    Returns:
+        dict: Resource configuration
+    """
+    # Function-level resources (highest priority)
+    function_resources = action_config.get("Resources", {})
+    
+    # Extract with fallback hierarchy
+    config = {
+        "partition": (
+            function_resources.get("Partition")
+            or server_config.get("Partition")
+            or "faasr"
+        ),
+        "nodes": (
+            function_resources.get("Nodes") 
+            or server_config.get("Nodes") 
+            or 1
+        ),
+        "tasks": (
+            function_resources.get("Tasks") 
+            or server_config.get("Tasks") 
+            or 1
+        ),
+        "cpus_per_task": (
+            function_resources.get("CPUsPerTask")
+            or server_config.get("CPUsPerTask")
+            or 1
+        ),
+        "memory_mb": (
+            function_resources.get("Memory")
+            or server_config.get("Memory")
+            or 1024
+        ),
+        "time_limit": (
+            function_resources.get("TimeLimit")
+            or server_config.get("TimeLimit")
+            or 60
+        ),
+        "working_dir": (
+            function_resources.get("WorkingDirectory")
+            or server_config.get("WorkingDirectory")
+            or "/tmp"
+        ),
+    }
+    
+    return config
+
 
 def main():
     args = parse_arguments()
@@ -615,6 +1114,10 @@ def main():
             deploy_to_github(workflow_data)
         elif faas_type == "openwhisk":
             deploy_to_ow(workflow_data)
+        elif faas_type == "googlecloud":
+            deploy_to_gcp(workflow_data)
+        elif faas_type == "slurm":
+            deploy_to_slurm(workflow_data)
         else:
             logger.error(f"Unsupported FaaSType: {faas_type}")
             sys.exit(1)
