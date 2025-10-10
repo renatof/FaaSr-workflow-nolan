@@ -25,7 +25,7 @@
                 "output2": "output2-R.txt"
             },
             "InvokeNext": [],
-            "FaaSServer": "GH",
+            "FaaSServer": "OW",
             "Type": "R",
             "FunctionName": "test_arrow"
         }
@@ -37,6 +37,18 @@
             "UseSecretStore": true,
             "ActionRepoName": "FaaSr-workflow",
             "Branch": "main"
+        },
+        "AWS": {
+            "FaaSType": "Lambda",
+            "Region": "us-east-1",
+            "UseSecretStore": true
+        },
+        "OW": {
+            "UseSecretStore": false,
+            "FaaSType": "OpenWhisk",
+            "Namespace": "guest",
+            "Endpoint": "ow.faasr.io:31002",
+            "API.key": "filler for now"
         }
     },
     "DataStores": {
@@ -49,7 +61,7 @@
     },
     "ActionContainers": {
         "create-input": "ghcr.io/faasr/github-actions-python:dev",
-        "test-arrow": "ghcr.io/faasr/github-actions-r:dev"
+        "test-arrow": "faasr/openwhisk-r:dev"
     },
     "FunctionInvoke": "create-input",
     "DefaultDataStore": "My_Minio_Bucket",
@@ -63,16 +75,3 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

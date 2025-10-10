@@ -42,6 +42,7 @@ jobs:
 
       - name: Register Functions
         env:
+          CUSTOM_CONTAINER: ${{ github.event.inputs.custom_container }}
           OW_APIkey: ${{ secrets.OW_APIkey }}
           AWS_AccessKey: ${{ secrets.AWS_AccessKey }}
           AWS_SecretKey: ${{ secrets.AWS_SecretKey }}
