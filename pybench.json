@@ -1,6 +1,9 @@
 {
   "ActionList": {
     "start": {
+      "Arguments": {
+        "arg1": "unused"
+      },
       "InvokeNext": [
         "runbench1"
       ],
