@@ -1,0 +1,62 @@
+{
+    "ComputeServers": {
+        "GCP": {
+            "FaaSType": "GoogleCloud",
+            "Namespace": "faasr-dev",
+            "Region": "us-central1",
+            "Endpoint": "https://run.googleapis.com/v2/projects/",
+            "UseSecretStore": true,
+            "ClientEmail": "faasr-workflow-runner@faasr-dev.iam.gserviceaccount.com",
+            "TokenUri": "https://oauth2.googleapis.com/token",
+            "CPUsPerTask": 1,
+            "Memory": 512,
+            "TimeLimit": 3600
+        }
+    },
+    "DataStores": {
+    "My_S3_Bucket": {
+      "Endpoint": "https://play.min.io",
+      "Bucket": "faasr",
+      "Region": "us-east-1"
+    }
+    },
+    "ActionList": {
+        "rfunc": {
+            "FunctionName": "r_log",
+            "FaaSServer": "GCP",
+            "Type": "R",
+            "Arguments": {
+                "message": "testing testing testing"
+            },
+            "InvokeNext": ["rfunc2"]
+        },
+         "rfunc2": {
+            "FunctionName": "r_log",
+            "FaaSServer": "GCP",
+            "Type": "R",
+            "Arguments": {
+                "message": "testing testing testing"
+            },
+            "InvokeNext": []
+        }
+    },
+    "ActionContainers": {
+        "rfunc": "ramrakha/gcp-r:dev",
+        "rfunc2": "ramrakha/gcp-r:dev"
+    },
+    "FunctionCRANPackage": {
+        "r_log": [
+            "gapminder"
+        ]
+    },
+    "FunctionGitRepo": {
+        "r_log": "nolcut/test-py"
+    },
+    "FunctionInvoke": "rfunc",
+    "FaaSrLog": "FaaSrLog",
+    "LoggingDataStore": "My_S3_Bucket",
+    "DefaultDataStore": "My_S3_Bucket",
+    "InvocationID":"1234",
+    "InvocationIDFromDate": "%Y%m%d%H%M",
+    "WorkflowName": "test-gcp"
+}
