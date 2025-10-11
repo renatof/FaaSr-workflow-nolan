@@ -30,11 +30,10 @@
     }
   },
   "DataStores": {
-    "S3": {
-      "Writable": "TRUE",
-      "Endpoint": "https://amnh1.osn.mghpcc.org",
-      "Region": "",
-      "Bucket": "deb170011-flare"
+    "My_S3_Bucket": {
+      "Endpoint": "https://play.min.io",
+      "Bucket": "faasr",
+      "Region": "us-east-1"
     }
   },
   "ActionContainers": {
@@ -42,13 +41,13 @@
     "runbench1": "ghcr.io/faasr/github-actions-python:latest"
   },
   "FunctionInvoke": "start",
-  "DefaultDataStore": "S3",
+  "LoggingDataStore": "My_S3_Bucket",
+  "DefaultDataStore": "My_S3_Bucket",
   "FunctionGitRepo": {
     "nullstart": "renatof/FaaSr-examples",
     "run_pyperformance_benchmark": "renatof/FaaSr-examples"
   },
   "FaaSrLog": "FaaSrLog",
-  "LoggingDataStore": "S3",
   "WorkflowName": "pybench",
   "InvocationID": "test"
 }
