@@ -33,6 +33,7 @@
     "S3": {
       "Writable": "TRUE",
       "Endpoint": "https://amnh1.osn.mghpcc.org",
+      "Region": "",
       "Bucket": "deb170011-flare"
     }
   },
