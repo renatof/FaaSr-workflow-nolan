@@ -55,8 +55,8 @@
     }
   },
   "ActionContainers": {
-    "start": "amrakha/gcp-r:dev4",
-    "sum": "amrakha/gcp-r:dev4"
+    "start": "ramrakha/gcp-r:dev4",
+    "sum": "ramrakha/gcp-r:dev4"
   },
   "FunctionInvoke": "start",
   "DefaultDataStore": "My_S3_Bucket",
