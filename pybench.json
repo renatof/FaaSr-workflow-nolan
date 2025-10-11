@@ -49,5 +49,6 @@
   },
   "FaaSrLog": "FaaSrLog",
   "LoggingDataStore": "S3",
-  "WorkflowName": "pybench"
+  "WorkflowName": "pybench",
+  "InvocationID": "test",
 }
