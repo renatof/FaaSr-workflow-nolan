@@ -58,5 +58,5 @@
     "DefaultDataStore": "My_S3_Bucket",
     "InvocationID":"1234",
     "InvocationIDFromDate": "%Y%m%d%H%M",
-    "WorkflowName": "test-gcp"
+    "WorkflowName": "gcp_workflow"
 }
