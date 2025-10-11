@@ -41,8 +41,8 @@
         }
     },
     "ActionContainers": {
-        "rfunc": "ramrakha/gcp-r:dev",
-        "rfunc2": "ramrakha/gcp-r:dev"
+        "rfunc": "ramrakha/gcp-r:dev:dev4",
+        "rfunc2": "ramrakha/gcp-r:dev:dev4"
     },
     "FunctionCRANPackage": {
         "r_log": [
