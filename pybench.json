@@ -50,6 +50,11 @@
     "nullstart": "renatof/FaaSr-examples",
     "run_pyperformance_benchmark": "renatof/FaaSr-examples"
   },
+  "PyPIPackageDownloads": {
+        "runbench1": [
+            "pyperformance"
+        ]
+  },
   "FaaSrLog": "FaaSrLog",
   "WorkflowName": "pybench",
   "InvocationID": "test"
