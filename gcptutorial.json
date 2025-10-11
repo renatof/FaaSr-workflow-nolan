@@ -48,8 +48,8 @@
     }
   },
   "ActionContainers": {
-    "start": "faasr/gcp-r:latest",
-    "sum": "faasr/gcp-r:latest"
+    "start": "faasr/gcp-r:2.0.1",
+    "sum": "faasr/gcp-r:2.0.1"
   },
   "FunctionInvoke": "start",
   "DefaultDataStore": "My_S3_Bucket",
