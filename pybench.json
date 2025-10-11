@@ -44,8 +44,8 @@
   "FunctionInvoke": "start",
   "DefaultDataStore": "S3",
   "FunctionGitRepo": {
-    "nullstart": "https://github.com/FaaSr/FaaSr-examples/blob/main/nullstart/nullstart.R",
-    "run_pyperformance_benchmark": "https://github.com/renatof/FaaSr-examples/blob/main/pythonbenchmark.py"
+    "nullstart": "https://github.com/renatof/FaaSr-examples",
+    "run_pyperformance_benchmark": "https://github.com/renatof/FaaSr-examples"
   },
   "FaaSrLog": "FaaSrLog",
   "LoggingDataStore": "S3",
