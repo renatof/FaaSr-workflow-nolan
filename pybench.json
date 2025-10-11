@@ -32,8 +32,8 @@
   "DataStores": {
     "S3": {
       "Writable": "TRUE",
-      "Endpoint": "https://play.min.io",
-      "Bucket": "faasr"
+      "Endpoint": "https://amnh1.osn.mghpcc.org",
+      "Bucket": "deb170011-flare"
     }
   },
   "ActionContainers": {
