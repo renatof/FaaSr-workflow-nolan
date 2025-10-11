@@ -57,5 +57,5 @@
   },
   "FaaSrLog": "FaaSrLog",
   "WorkflowName": "pybench",
-  "InvocationID": "test"
+  "InvocationIDFromDate": "%Y%m%d%H%M"
 }
