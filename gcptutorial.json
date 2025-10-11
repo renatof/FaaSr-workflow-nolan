@@ -48,8 +48,8 @@
     }
   },
   "ActionContainers": {
-    "start": "faasr/gcp-r:2.0.1",
-    "sum": "faasr/gcp-r:2.0.1"
+    "start": "ramrakha/gcp-r:dev4",
+    "sum": "ramrakha/gcp-r:dev4"
   },
   "FunctionInvoke": "start",
   "DefaultDataStore": "My_S3_Bucket",
@@ -60,5 +60,5 @@
   "LoggingDataStore": "My_S3_Bucket",
   "FaaSrLog": "FaaSrLog",
   "InvocationID": "",
-  "WorkflowName": "gcptutorial2"
+  "WorkflowName": "gcptutorial"
 }
