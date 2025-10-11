@@ -50,5 +50,5 @@
   "FaaSrLog": "FaaSrLog",
   "LoggingDataStore": "S3",
   "WorkflowName": "pybench",
-  "InvocationID": "test",
+  "InvocationID": "test"
 }
