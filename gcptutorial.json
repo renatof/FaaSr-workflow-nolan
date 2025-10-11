@@ -27,13 +27,6 @@
     }
   },
   "ComputeServers": {
-    "GH": {
-      "FaaSType": "GitHubActions",
-      "UserName": "renatof",
-      "UseSecretStore": true,
-      "ActionRepoName": "FaaSr-workflow-nolan",
-      "Branch": "main"
-    },
     "GCP": {
             "FaaSType": "GoogleCloud",
             "Namespace": "nsf-20210119-renatof-420467",
