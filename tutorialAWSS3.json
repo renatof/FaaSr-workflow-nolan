@@ -49,7 +49,7 @@
   "FunctionInvoke": "start",
   "DefaultDataStore": "AWSS3bucket004",
   "FunctionGitRepo": {
-    "create_sample_data": "FaaSr/FaaSr-tutorial",
+    "create_sample_data": "FaaSr/FaaSr-tutorial/create_sample_data.R",
     "compute_sum": "FaaSr/FaaSr-tutorial"
   },
   "LoggingDataStore": "AWSS3bucket004",
