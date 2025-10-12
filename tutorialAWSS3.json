@@ -36,7 +36,7 @@
     }
   },
   "DataStores": {
-        "AWSS3": {
+        "AWSS3bucket004": {
             "Bucket": "faasr-bucket-0004",
             "Region": "us-east-1",
             "Writable": "TRUE"
@@ -47,12 +47,12 @@
     "sum": "ghcr.io/faasr/github-actions-r:latest"
   },
   "FunctionInvoke": "start",
-  "DefaultDataStore": "AWSS3",
+  "DefaultDataStore": "AWSS3bucket004",
   "FunctionGitRepo": {
     "create_sample_data": "FaaSr/FaaSr-tutorial",
     "compute_sum": "FaaSr/FaaSr-tutorial"
   },
-  "LoggingDataStore": "AWSS3",
+  "LoggingDataStore": "AWSS3bucket004",
   "FaaSrLog": "FaaSrLog",
   "InvocationID": "",
   "WorkflowName": "tutorial"
