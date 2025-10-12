@@ -14,7 +14,7 @@
       "FunctionName": "create_sample_data"
     },
     "sum": {
-      "FunctionName": "compute_sum",
+      "FunctionName": "compute_sum_arrow",
       "FaaSServer": "GH",
       "Type": "R",
       "Arguments": {
@@ -49,8 +49,8 @@
   "FunctionInvoke": "start",
   "DefaultDataStore": "AWSS3bucket004",
   "FunctionGitRepo": {
-    "create_sample_data": "FaaSr/FaaSr-tutorial/blob/main/create_sample_data.R",
-    "compute_sum": "FaaSr/FaaSr-tutorial"
+    "create_sample_data": "FaaSr/FaaSr-tutorial",
+    "compute_sum_arrow": "FaaSr/FaaSr-tutorial"
   },
   "LoggingDataStore": "AWSS3bucket004",
   "FaaSrLog": "FaaSrLog",
