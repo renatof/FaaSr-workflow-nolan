@@ -39,6 +39,7 @@
         "OSNS3": {
             "Endpoint": "https://amnh1.osn.mghpcc.org",
             "Bucket": "deb170011-flare",
+            "Region": "us-east-1",
             "Writable": "TRUE"
         }
     },
