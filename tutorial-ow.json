@@ -15,7 +15,7 @@
     },
     "sum": {
       "FunctionName": "compute_sum",
-      "FaaSServer": "GH",
+      "FaaSServer": "OW",
       "Type": "R",
       "Arguments": {
         "folder": "tutorial",
@@ -26,16 +26,23 @@
       "InvokeNext": []
     }
   },
-  "ComputeServers": {
-    "GH": {
-      "FaaSType": "GitHubActions",
-      "UserName": "renatof",
-      "UseSecretStore": true,
-      "ActionRepoName": "FaaSr-workflow-nolan",
-      "Branch": "main"
-    }
-  },
-  "DataStores": {
+    "ComputeServers": {
+        "OW": {
+            "FaaSType": "OpenWhisk",
+            "Namespace": "guest",
+            "UseSecretStore": false,
+            "Endpoint": "ow.faasr.io:31002",
+            "API.key": "filler:filler"
+        },
+        "GH": {
+            "FaaSType": "GitHubActions",
+            "UserName": "renatof",
+            "UseSecretStore": true,
+            "ActionRepoName": "FaaSr-workflow-nolan",
+            "Branch": "main"
+        }
+    },
+   "DataStores": {
     "My_S3_Bucket": {
       "Endpoint": "https://play.min.io",
       "Bucket": "faasr",
@@ -44,7 +51,7 @@
   },
   "ActionContainers": {
     "start": "ghcr.io/faasr/github-actions-r:latest",
-    "sum": "ghcr.io/faasr/github-actions-r:latest"
+    "sum": "faasr/openwhisk-r:latest"
   },
   "FunctionInvoke": "start",
   "DefaultDataStore": "My_S3_Bucket",
@@ -55,5 +62,5 @@
   "LoggingDataStore": "My_S3_Bucket",
   "FaaSrLog": "FaaSrLog",
   "InvocationID": "",
-  "WorkflowName": "tutorial"
+  "WorkflowName": "tutorial-ow"
 }

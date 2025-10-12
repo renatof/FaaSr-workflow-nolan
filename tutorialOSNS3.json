@@ -2,7 +2,7 @@
   "ActionList": {
     "start": {
       "Arguments": {
-        "folder": "tutorial",
+        "folder": "tutorialOSNS3",
         "output1": "sample1.csv",
         "output2": "sample2.csv"
       },
@@ -18,7 +18,7 @@
       "FaaSServer": "GH",
       "Type": "R",
       "Arguments": {
-        "folder": "tutorial",
+        "folder": "tutorialOSNS3",
         "input2": "sample2.csv",
         "input1": "sample1.csv",
         "output": "sum.csv"
@@ -35,25 +35,26 @@
       "Branch": "main"
     }
   },
-  "DataStores": {
-    "My_S3_Bucket": {
-      "Endpoint": "https://play.min.io",
-      "Bucket": "faasr",
-      "Region": "us-east-1"
-    }
-  },
+    "DataStores": {
+        "OSNS3": {
+            "Endpoint": "https://amnh1.osn.mghpcc.org",
+            "Bucket": "deb170011-flare",
+            "Region": "us-east-1",
+            "Writable": "TRUE"
+        }
+    },
   "ActionContainers": {
     "start": "ghcr.io/faasr/github-actions-r:latest",
     "sum": "ghcr.io/faasr/github-actions-r:latest"
   },
   "FunctionInvoke": "start",
-  "DefaultDataStore": "My_S3_Bucket",
+  "DefaultDataStore": "OSNS3",
   "FunctionGitRepo": {
     "create_sample_data": "FaaSr/FaaSr-tutorial",
     "compute_sum": "FaaSr/FaaSr-tutorial"
   },
-  "LoggingDataStore": "My_S3_Bucket",
+  "LoggingDataStore": "OSNS3",
   "FaaSrLog": "FaaSrLog",
   "InvocationID": "",
-  "WorkflowName": "tutorial"
+  "WorkflowName": "tutorialOSNS3"
 }
