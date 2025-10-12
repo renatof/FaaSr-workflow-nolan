@@ -371,25 +371,17 @@ def deploy_to_aws(workflow_data):
     # Get AWS credentials
     aws_access_key, aws_secret_key, aws_region = get_lambda_credentials(workflow_data)
 
-    # Get the AWS ARN for the user
-    iam_client = boto3.client(
-        "iam",
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key,
-        region_name=aws_region,
-    )
-    try:
-        aws_arn = iam_client.get_role()["User"]["Arn"]
-    except boto3.exceptions.Boto3Error as e:
-        logger.error(f"Error fetching AWS IAM user ARN: {str(e)}")
-        sys.exit(1)
-
     lambda_client = boto3.client(
         "lambda",
         aws_access_key_id=aws_access_key,
         aws_secret_access_key=aws_secret_key,
         region_name=aws_region,
     )
+    try:
+        aws_arn = lambda_client.get_role()["User"]["Arn"]
+    except boto3.exceptions.Boto3Error as e:
+        logger.error(f"Error fetching AWS IAM user ARN: {str(e)}")
+        sys.exit(1)
 
     # Process each action in the workflow
     for action_name, action_data in lambda_actions.items():
