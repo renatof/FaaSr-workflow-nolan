@@ -36,11 +36,11 @@
     }
   },
   "DataStores": {
-    "AWSS3": {
-      "Endpoint": "https://play.min.io",
-      "Bucket": "faasr",
-      "Region": "us-east-1"
-    }
+        "AWSS3": {
+            "Bucket": "faasr-bucket-0004",
+            "Region": "us-east-1",
+            "Writable": "TRUE"
+        }
   },
   "ActionContainers": {
     "start": "ghcr.io/faasr/github-actions-r:latest",
