@@ -2,7 +2,7 @@
   "ActionList": {
     "start": {
       "Arguments": {
-        "folder": "tutorial",
+        "folder": "tutorialAWSS3",
         "output1": "sample1.csv",
         "output2": "sample2.csv"
       },
@@ -18,7 +18,7 @@
       "FaaSServer": "GH",
       "Type": "R",
       "Arguments": {
-        "folder": "tutorial",
+        "folder": "tutorialAWSS3",
         "input2": "sample2.csv",
         "input1": "sample1.csv",
         "output": "sum.csv"
@@ -55,5 +55,5 @@
   "LoggingDataStore": "AWSS3bucket004",
   "FaaSrLog": "FaaSrLog",
   "InvocationID": "",
-  "WorkflowName": "tutorial"
+  "WorkflowName": "tutorialAWSS3"
 }
