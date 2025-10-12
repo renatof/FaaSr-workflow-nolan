@@ -1,0 +1,42 @@
+{
+  "ActionList": {
+    "start": {
+      "Arguments": {
+        "arg1": "arg1"
+      },
+      "InvokeNext": [],
+      "FaaSServer": "GH",
+      "Type": "R",
+      "FunctionName": "nullstart"
+    }
+  },
+  "ComputeServers": {
+    "GH": {
+      "FaaSType": "GitHubActions",
+      "UseSecretStore": true,
+      "ActionRepoName": "FaaSr-workflow-nolan",
+      "Branch": "main",
+      "UserName": "renatof"
+    }
+  },
+  "DataStores": {
+    "S3": {
+      "Writable": "TRUE",
+      "Endpoint": "https://play.min.io",
+      "Bucket": "faasr",
+      "Region": "us-east-1"
+    }
+  },
+  "ActionContainers": {
+    "start": "ghcr.io/faasr/github-actions-r:latest"
+  },
+  "FunctionInvoke": "start",
+  "DefaultDataStore": "S3",
+  "FunctionGitRepo": {
+    "undefined": "renatof/FaaSr-examples",
+    "nullstart": "renatof/FaaSr-examples"
+  },
+  "FaaSrLog": "FaaSrLog",
+  "LoggingDataStore": "S3",
+  "WorkflowName": "testsingleaction"
+}
