@@ -20,7 +20,7 @@
     }
   },
   "DataStores": {
-    "S3": {
+    "My_S3_Bucket": {
       "Writable": "TRUE",
       "Endpoint": "https://play.min.io",
       "Bucket": "faasr",
@@ -31,12 +31,12 @@
     "start": "ghcr.io/faasr/github-actions-r:latest"
   },
   "FunctionInvoke": "start",
-  "DefaultDataStore": "S3",
+  "DefaultDataStore": "My_S3_Bucket",
   "FunctionGitRepo": {
     "undefined": "renatof/FaaSr-examples",
     "nullstart": "renatof/FaaSr-examples"
   },
   "FaaSrLog": "FaaSrLog",
-  "LoggingDataStore": "S3",
+  "LoggingDataStore": "My_S3_Bucket",
   "WorkflowName": "testsingleaction"
 }
