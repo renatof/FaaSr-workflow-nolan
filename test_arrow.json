@@ -11,7 +11,7 @@
             "InvokeNext": [
                 "test-arrow"
             ],
-            "FaaSServer": "GH",
+            "FaaSServer": "AWS",
             "Type": "Python",
             "FunctionName": "create_input"
         },
@@ -75,4 +75,5 @@
     "WorkflowName": "Arrow-Workflow"
 
 }
+
 
